@@ -39,7 +39,7 @@ export default async function InventoryPage({
           <h1 className="text-2xl font-semibold tracking-tight">{t("inventory.title")}</h1>
           <p className="mt-1 text-sm text-zinc-500">{t("inventory.subtitle")}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Link
             href={`/${slug}/inventory/new`}
             className="inline-flex h-10 items-center rounded-md border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
