@@ -24,3 +24,26 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Logical properties keep layouts correct in both LTR and RTL. */
+[dir="rtl"] body {
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+/* Flip directional icons/margins when direction changes. */
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+/* Keep numerals, codes and phone numbers readable in RTL text flows. */
+[dir="rtl"] .ltr-contents {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
