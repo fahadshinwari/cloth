@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { USER_ROLE } from "@/lib/constants";
+import { USER_ROLE, type Permission } from "@/lib/constants";
 import { getAuthContext } from "@/lib/auth";
 import { getShopBySlug } from "@/lib/services/tenant.service";
 import { getTranslator } from "@/lib/i18n/dictionaries";
@@ -37,19 +37,28 @@ export default async function TenantLayout({
   const locale = await getRequestLocale();
   const t = getTranslator(locale);
 
-  const navItems: TenantNavItem[] = ctx
+  const allNavItems: Array<{ href: string; label: string; permission: Permission }> = ctx
     ? [
-        { href: `/${shop.slug}/dashboard`, label: t("nav.dashboard") },
-        { href: `/${shop.slug}/partners`, label: t("nav.partners") },
-        { href: `/${shop.slug}/buyers`, label: t("nav.buyers") },
-        { href: `/${shop.slug}/suppliers`, label: t("nav.suppliers") },
-        { href: `/${shop.slug}/inventory`, label: t("nav.inventory") },
-        { href: `/${shop.slug}/teller`, label: t("nav.teller") },
-        { href: `/${shop.slug}/reports`, label: t("nav.reports") },
-        { href: `/${shop.slug}/reminders`, label: t("nav.reminders") },
-        { href: `/${shop.slug}/settings`, label: t("nav.settings") },
+        { href: `/${shop.slug}/dashboard`, label: t("nav.dashboard"), permission: "dashboard.view" },
+        { href: `/${shop.slug}/partners`, label: t("nav.partners"), permission: "partners.manage" },
+        { href: `/${shop.slug}/buyers`, label: t("nav.buyers"), permission: "buyers.manage" },
+        { href: `/${shop.slug}/suppliers`, label: t("nav.suppliers"), permission: "suppliers.manage" },
+        { href: `/${shop.slug}/inventory`, label: t("nav.inventory"), permission: "inventory.manage" },
+        { href: `/${shop.slug}/teller`, label: t("nav.teller"), permission: "teller.manage" },
+        { href: `/${shop.slug}/expenses`, label: t("nav.expenses"), permission: "expenses.manage" },
+        { href: `/${shop.slug}/employees`, label: t("nav.employees"), permission: "employees.manage" },
+        { href: `/${shop.slug}/bills`, label: t("nav.bills"), permission: "bills.view" },
+        { href: `/${shop.slug}/reports`, label: t("nav.reports"), permission: "reports.view" },
+        { href: `/${shop.slug}/reminders`, label: t("nav.reminders"), permission: "reminders.manage" },
+        { href: `/${shop.slug}/users`, label: t("nav.users"), permission: "users.manage" },
+        { href: `/${shop.slug}/roles`, label: t("nav.roles"), permission: "roles.manage" },
+        { href: `/${shop.slug}/settings`, label: t("nav.settings"), permission: "dashboard.view" },
       ]
     : [];
+
+  const navItems: TenantNavItem[] = allNavItems
+    .filter((item) => ctx?.permissions.includes(item.permission))
+    .map(({ href, label }) => ({ href, label }));
 
   return (
     <div className="flex min-h-full flex-col" data-tenant={shop.slug}>

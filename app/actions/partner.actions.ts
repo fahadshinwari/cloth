@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireMerchantAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import {
   PartnerServiceError,
   createInvestment,
@@ -11,11 +11,14 @@ import {
 } from "@/lib/services/partner.service";
 import { validateInvestmentInput, validatePartnerInput } from "@/lib/validation";
 import { getErrorMessage } from "@/lib/utils";
+import type { PrintPayload } from "@/lib/print";
 
 export interface FormActionState {
   ok?: boolean;
   error?: string;
   fieldErrors?: Record<string, string>;
+  /** Present after a successful ledger entry save — enables printing. */
+  print?: PrintPayload;
 }
 
 export type PartnerFormAction = (
@@ -35,7 +38,7 @@ export async function createPartnerAction(
 ): Promise<FormActionState> {
   let ctx;
   try {
-    ctx = await requireMerchantAdmin();
+    ctx = await requirePermission("partners.manage");
   } catch {
     return { error: "Unauthorized" };
   }
@@ -65,7 +68,7 @@ export async function updatePartnerAction(
 ): Promise<FormActionState> {
   let ctx;
   try {
-    ctx = await requireMerchantAdmin();
+    ctx = await requirePermission("partners.manage");
   } catch {
     return { error: "Unauthorized" };
   }
@@ -94,7 +97,7 @@ export async function createInvestmentAction(
 ): Promise<FormActionState> {
   let ctx;
   try {
-    ctx = await requireMerchantAdmin();
+    ctx = await requirePermission("partners.manage");
   } catch {
     return { error: "Unauthorized" };
   }
@@ -118,7 +121,7 @@ export async function createInvestmentAction(
 }
 
 export async function deleteInvestmentAction(investmentId: string): Promise<void> {
-  const ctx = await requireMerchantAdmin();
+  const ctx = await requirePermission("partners.manage");
   await deleteInvestment(ctx.tenantId, investmentId);
   revalidatePartnerPaths(ctx.tenantSlug);
 }

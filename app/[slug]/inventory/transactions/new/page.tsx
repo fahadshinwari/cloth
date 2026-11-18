@@ -6,6 +6,8 @@ import { getShopBySlug } from "@/lib/services/tenant.service";
 import { listCloths } from "@/lib/services/inventory.service";
 import { listBuyers } from "@/lib/services/buyer.service";
 import { listSuppliers } from "@/lib/services/supplier.service";
+import { getTranslator } from "@/lib/i18n/dictionaries";
+import { getRequestLocale } from "@/lib/i18n/request";
 import { Card } from "../../../../_components/ui";
 import { InventoryTransactionForm } from "../../../_components/inventory-transaction-form";
 
@@ -26,6 +28,9 @@ export default async function NewInventoryTransactionPage({
     }
   }
 
+  const locale = await getRequestLocale();
+  const t = getTranslator(locale);
+
   const tenantId = String(shop._id);
   const [cloths, buyers, suppliers] = await Promise.all([
     listCloths(tenantId),
@@ -37,13 +42,10 @@ export default async function NewInventoryTransactionPage({
     <div className="flex flex-col gap-6">
       <div>
         <Link href={`/${slug}/inventory`} className="text-sm text-zinc-500 hover:underline">
-          ← Inventory
+          ← {t("inventory.title")}
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">New inventory transaction</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Stock changes only through transactions — purchases raise supplier payables and sales
-          raise buyer balances when on credit.
-        </p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">{t("inventory.newTransaction")}</h1>
+        <p className="mt-1 text-sm text-zinc-500">{t("inventory.transactionHint")}</p>
       </div>
 
       <Card>
@@ -53,6 +55,7 @@ export default async function NewInventoryTransactionPage({
             name: cloth.name,
             currency: cloth.currency,
             pricePerMeter: String(cloth.pricePerMeterMinor / 100),
+            unit: cloth.unit,
           }))}
           suppliers={suppliers.map((supplier) => ({
             id: String(supplier._id),
@@ -64,7 +67,7 @@ export default async function NewInventoryTransactionPage({
             name: buyer.name,
             shopName: buyer.shopName,
           }))}
-          submitLabel="Record transaction"
+          submitLabel={t("buyers.record")}
         />
       </Card>
     </div>

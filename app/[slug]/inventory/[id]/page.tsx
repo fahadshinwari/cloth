@@ -11,7 +11,7 @@ import {
 import { getSupplierById, listSuppliers } from "@/lib/services/supplier.service";
 import { listBuyers } from "@/lib/services/buyer.service";
 import { formatDate, formatMinorAmount } from "@/lib/i18n/format";
-import { formatMeters } from "@/lib/measure";
+import { formatQuantity, fromMillimetersForUnit, pricePerYardMinor } from "@/lib/measure";
 import { getTranslator } from "@/lib/i18n/dictionaries";
 import { getRequestLocale } from "@/lib/i18n/request";
 import { updateClothAction } from "@/app/actions/inventory.actions";
@@ -66,6 +66,8 @@ export default async function ClothDetailPage({
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">{cloth.name}</h1>
         <p className="mt-1 text-sm text-zinc-500">
+          {cloth.code ? <span className="ltr-contents">{cloth.code}</span> : null}
+          {cloth.code ? " · " : null}
           {cloth.category || "—"}
           {preferredSupplier ? ` · ${preferredSupplier.name}` : ""}
         </p>
@@ -81,7 +83,7 @@ export default async function ClothDetailPage({
               {t("inventory.currentStock")}
             </div>
             <div className="mt-1 text-lg font-semibold" dir="ltr">
-              {formatMeters(stockMm)}
+              {formatQuantity(stockMm, "yard", t("units.yd"))}
             </div>
           </div>
           <div>
@@ -89,7 +91,9 @@ export default async function ClothDetailPage({
               {t("inventory.fields.pricePerMeter")}
             </div>
             <div className="mt-1 text-lg font-semibold" dir="ltr">
-              {formatMinorAmount(cloth.pricePerMeterMinor, cloth.currency)} / m
+              {cloth.unit === "meter"
+                ? `${formatMinorAmount(cloth.pricePerMeterMinor, cloth.currency)} / ${t("units.m")}`
+                : `${formatMinorAmount(pricePerYardMinor(cloth.pricePerMeterMinor), cloth.currency)} / ${t("units.yd")}`}
             </div>
           </div>
           <div>
@@ -116,6 +120,7 @@ export default async function ClothDetailPage({
               name: cloth.name,
               currency: cloth.currency,
               pricePerMeter: String(cloth.pricePerMeterMinor / 100),
+              unit: cloth.unit,
             },
           ]}
           suppliers={suppliers.map((supplier) => ({
@@ -167,19 +172,25 @@ export default async function ClothDetailPage({
                             : "font-medium text-amber-600 dark:text-amber-400"
                         }
                       >
-                        {movement.direction === "in" ? "IN" : "OUT"}
+                        {movement.direction === "in" ? t("inventory.directionIn") : t("inventory.directionOut")}
                       </span>
                     </td>
                     <td className="px-4 py-3" dir="ltr">
-                      {formatMeters(movement.quantityMm)}
+                      {formatQuantity(
+                        movement.quantityMm,
+                        movement.unit === "yard" ? "yard" : "meter",
+                        t(movement.unit === "yard" ? "units.yd" : "units.m"),
+                      )}
                     </td>
                     <td className="px-4 py-3" dir="ltr">
-                      {formatMinorAmount(movement.pricePerMeterMinor, movement.currency)}
+                      {movement.unit === "yard"
+                        ? formatMinorAmount(pricePerYardMinor(movement.pricePerMeterMinor), movement.currency)
+                        : formatMinorAmount(movement.pricePerMeterMinor, movement.currency)}
                     </td>
                     <td className="px-4 py-3 font-medium" dir="ltr">
                       {formatMinorAmount(movement.totalValueMinor, movement.currency)}
                     </td>
-                    <td className="px-4 py-3 capitalize text-zinc-500">{movement.sourceType}</td>
+                    <td className="px-4 py-3 text-zinc-500">{t(`inventory.sources.${movement.sourceType}`)}</td>
                     <td className="px-4 py-3 text-zinc-500">{movement.note || "—"}</td>
                   </tr>
                 ))}
@@ -197,13 +208,28 @@ export default async function ClothDetailPage({
           action={updateClothAction.bind(null, String(cloth._id))}
           values={{
             name: cloth.name,
+            code: cloth.code,
+            unit: cloth.unit,
             category: cloth.category,
             description: cloth.description,
-            pricePerMeter: String(cloth.pricePerMeterMinor / 100),
+            pricePerMeter: String(
+              (cloth.unit === "meter"
+                ? cloth.pricePerMeterMinor
+                : pricePerYardMinor(cloth.pricePerMeterMinor)) / 100,
+            ),
             currency: cloth.currency,
             supplierId: cloth.supplierId ? String(cloth.supplierId) : "",
             lowStockThresholdMeters:
-              cloth.lowStockThresholdMm != null ? String(cloth.lowStockThresholdMm / 1000) : "",
+              cloth.lowStockThresholdMm != null
+                ? String(
+                    Math.round(
+                      fromMillimetersForUnit(
+                        cloth.lowStockThresholdMm,
+                        cloth.unit === "meter" ? "meter" : "yard",
+                      ) * 1000,
+                    ) / 1000,
+                  )
+                : "",
             notes: cloth.notes,
           }}
           suppliers={suppliers.map((supplier) => ({

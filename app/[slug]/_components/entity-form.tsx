@@ -6,6 +6,7 @@ import { Field, SelectInput, TextInput } from "../../_components/ui";
 import { useI18n } from "../../_components/i18n-provider";
 
 export interface EntityFormValues {
+  code?: string;
   name?: string;
   phone?: string;
   shopName?: string;
@@ -37,6 +38,22 @@ export function EntityForm({
 
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
+      {withShopName ? (
+        <Field
+          label={t("forms.common.code")}
+          error={fieldErrors.code}
+          hint={t("forms.common.codeHint")}
+        >
+          <TextInput
+            name="code"
+            defaultValue={values?.code}
+            required
+            dir="ltr"
+            maxLength={40}
+          />
+        </Field>
+      ) : null}
+
       <Field label={t("forms.common.name")} error={fieldErrors.name}>
         <TextInput name="name" defaultValue={values?.name} required maxLength={120} />
       </Field>

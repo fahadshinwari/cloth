@@ -67,7 +67,7 @@ export default async function AdminDashboardPage() {
                   </td>
                   <td className="px-4 py-3">{shop.currency}</td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={shop.status} />
+                    <StatusBadge status={shop.status} locale={locale} />
                     <div className="mt-1 text-xs text-zinc-500">{formatDate(shop.updatedAt ?? new Date(), locale)}</div>
                   </td>
                   <td className="px-4 py-3">

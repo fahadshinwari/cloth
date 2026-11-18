@@ -47,7 +47,10 @@
     "reports": "گزارش‌ها",
     "reminders": "یادآوری‌ها",
     "settings": "تنظیمات",
-    "shops": "مغازه‌ها"
+    "shops": "مغازه‌ها",
+    "expenses": "مصارف",
+    "employees": "کارمندان",
+    "bills": "جستجوی بل"
   },
   "qa": {
     "addBuyer": "افزودن خریدار",
@@ -61,10 +64,89 @@
   },
   "reports": {
     "title": "گزارش‌ها",
-    "subtitle": "فیلتر، مشاهده و دانلود گزارش‌های تجاری (CSV / PDF).",
+    "subtitle": "گزارش‌های تجاری را فیلتر، مشاهده و دانلود کنید (اکسل / CSV).",
     "downloadCsv": "دانلود CSV",
-    "downloadPdf": "دانلود PDF",
-    "empty": "برای فیلترهای انتخاب شده داده‌ای وجود ندارد."
+    "empty": "برای فیلترهای انتخاب شده داده‌ای وجود ندارد.",
+    "downloadXlsx": "دانلود اکسل (XLSX)",
+    "applyFilters": "اعمال فیلترها",
+    "filters": {
+      "from": "از",
+      "to": "تا",
+      "currency": "واحد پول",
+      "transactionType": "نوع معامله",
+      "buyer": "خریدار",
+      "supplier": "تأمین‌کننده",
+      "cloth": "پارچه",
+      "all": "همه"
+    },
+    "meta": {
+      "from": "از",
+      "to": "تا",
+      "currency": "واحد پول",
+      "transactionType": "نوع معامله"
+    },
+    "titles": {
+      "daily": "معاملات روزانه",
+      "weekly": "معاملات هفتگی",
+      "monthly": "معاملات ماهانه",
+      "buyers": "گزارش خریداران",
+      "suppliers": "گزارش تأمین‌کنندگان",
+      "inventory": "گزارش موجودی",
+      "partners": "گزارش سرمایه‌گذاری شریکان",
+      "teller": "گزارش صندوق"
+    },
+    "sections": {
+      "buyerHistory": "تاریخچه معاملات خریدار",
+      "supplierHistory": "تاریخچه معاملات تأمین‌کننده"
+    },
+    "columns": {
+      "period": "دوره",
+      "currency": "واحد پول",
+      "goodsGiven": "اجناس داده شده",
+      "paymentsReceived": "پول دریافتی",
+      "purchases": "خریدها",
+      "supplierPayments": "پرداخت به تأمین‌کننده",
+      "investments": "سرمایه‌گذاری‌ها",
+      "tellerIn": "ورودی صندوق",
+      "tellerOut": "خروجی صندوق",
+      "buyer": "خریدار",
+      "shop": "دکان",
+      "phone": "تلفن",
+      "clothesReceived": "پوشاک دریافت‌شده",
+      "payments": "پرداخت‌ها",
+      "outstanding": "باقی‌مانده",
+      "supplier": "تأمین‌کننده",
+      "company": "شرکت",
+      "clothingReceived": "پوشاک دریافت‌شده",
+      "paymentsMade": "پرداخت‌های شده",
+      "outstandingPayable": "باقی‌مانده پرداختنی",
+      "cloth": "پارچه",
+      "code": "کد",
+      "category": "نوعیت",
+      "metersIn": "ګز ورودی",
+      "metersOut": "ګز خروجی",
+      "currentMeters": "ګز فعلی",
+      "pricePerMeter": "قیمت به ګز",
+      "inventoryValue": "ارزش موجودی",
+      "partner": "شریک",
+      "invested": "سرمایه‌گذاری",
+      "cashIn": "پول ورودی",
+      "cashOut": "پول خروجی",
+      "net": "خالص",
+      "date": "تاریخ",
+      "billNo": "شماره بل",
+      "description": "توضیحات",
+      "type": "نوع",
+      "debit": "بدهکار",
+      "credit": "بستانکار"
+    },
+    "transactionTypes": {
+      "goods": "اجناس داده شده",
+      "payment": "پرداخت",
+      "purchase": "خرید",
+      "add": "پول ورودی",
+      "remove": "پول خروجی"
+    }
   },
   "teller": {
     "title": "صندوق / پول نقد",
@@ -113,7 +195,9 @@
       "adminPasswordHint": "هنگام ویرایش، برای حفظ رمز فعلی خالی بگذارید.",
       "phone": "تلفن",
       "currency": "واحد پول",
-      "status": "وضعیت"
+      "status": "وضعیت",
+      "optional": "(اختیاری)",
+      "passwordMin": "حداقل ۸ حرف."
     },
     "actions": {
       "activate": "فعال‌سازی",
@@ -121,7 +205,20 @@
       "resetCredentials": "بازنشانی اطلاعات ورود",
       "resetTitle": "بازنشانی اطلاعات ورود مدیر",
       "newEmail": "ایمیل جدید (اختیاری)",
-      "newPassword": "رمز عبور جدید (اختیاری)"
+      "newPassword": "رمز عبور جدید (اختیاری)",
+      "updateCredentials": "به‌روزرسانی اطلاعات ورود",
+      "credentialsUpdated": "اطلاعات ورود به‌روز شد.",
+      "createShop": "ایجاد مغازه",
+      "saveChanges": "ذخیره تغییرات"
+    },
+    "settings": {
+      "title": "تنظیمات موجودی",
+      "allowNegativeInventory": "اجازه موجودی منفی",
+      "allowNegativeInventoryHint": "وقتی خاموش باشد، فروشی که موجودی را زیر صفر ببرد رد می‌شود. اصلاح موجودی را به‌عنوان معامله اصلاح ثبت کنید.",
+      "allowAdvancePayments": "اجازه پرداخت پیش‌پرداخت",
+      "allowAdvancePaymentsHint": "وقتی خاموش باشد، پرداخت بیشتر از باقی‌مانده حساب رد می‌شود. فقط در صورت ثبت عمدی پیش‌پرداخت روشن کنید.",
+      "allowed": "مجاز — خاموش کنید",
+      "notAllowed": "غیرمجاز — روشن کنید"
     }
   },
   "settings": {
@@ -232,13 +329,13 @@
   },
   "inventory": {
     "title": "موجودی",
-    "subtitle": "موجودی پوشاک به متر، محاسبه شده از معاملات واقعی.",
+    "subtitle": "موجودی لباس بر اساس ګز، محاسبه‌شده از معاملات واقعی.",
     "newCloth": "پارچه جدید",
     "newTransaction": "معامله جدید",
     "viewAll": "مشاهده همه",
     "details": "اطلاعات پارچه",
     "totals": "مجموع موجودی",
-    "totalMeters": "مجموع مترها",
+    "totalMeters": "مجموع ګز",
     "valueAFN": "ارزش به افغانی",
     "valueUSD": "ارزش به دالر",
     "stockCard": "خلاصه موجودی",
@@ -253,10 +350,19 @@
       "cloth": "پارچه",
       "category": "نوعیت",
       "quantity": "مقدار",
-      "pricePerMeter": "قیمت به متر",
+      "pricePerMeter": "قیمت به واحد",
       "value": "ارزش کلی",
       "direction": "جهت",
-      "source": "منبع"
+      "source": "منبع",
+      "code": "کد"
+    },
+    "transactionHint": "موجودی فقط از طریق معاملات تغییر می‌کند — خرید حساب تأمین‌کننده و فروش نسیه حساب خریدار را افزایش می‌دهد.",
+    "directionIn": "ورودی",
+    "directionOut": "خروجی",
+    "sources": {
+      "purchase": "خرید",
+      "sale": "فروش",
+      "adjustment": "اصلاح"
     }
   },
   "reminders": {
@@ -316,16 +422,24 @@
       "clearFilters": "پاک کردن فیلترها",
       "cloth": "پارچه",
       "supplier": "تأمین‌کننده",
-      "buyer": "خریدار"
+      "buyer": "خریدار",
+      "unit": "واحد",
+      "unitHint": "ګز واحد پیش‌فرض خرید و فروش است؛ متر نیز پشتیبانی می‌شود.",
+      "billNo": "شماره بل",
+      "billNoHint": "اختیاری — بعداً می‌توانید این ثبت را با شماره بل پیدا کنید.",
+      "receivedBy": "دریافت‌کننده",
+      "receivedByHint": "چه کسی این پرداخت را دریافت کرد (کتګوری مصرف یا کارمند)."
     },
     "cloth": {
       "clothName": "نام پارچه",
       "category": "نوعیت / کتګوری",
       "categoryHint": "مثلاً کتان، پنبه",
-      "pricePerMeter": "قیمت به متر",
+      "pricePerMeter": "قیمت به واحد",
       "description": "توضیحات",
-      "lowStock": "اعلان موجودی کم (متر)",
-      "lowStockHint": "اختیاری — وقتی موجودی به این حد رسید، در داشبورد اعلان می‌شود."
+      "lowStock": "هشدار موجودی کم",
+      "lowStockHint": "بر اساس واحد انتخاب‌شده لباس است. برای غیرفعال کردن خالی بگذارید.",
+      "code": "کد پارچه",
+      "codeHint": "اختیاری — مثلاً CL-1042"
     },
     "inventory": {
       "sourceType": "معامله",
@@ -335,7 +449,7 @@
       "direction": "جهت",
       "in": "ورودی — دریافت موجودی",
       "out": "خروجی — دادن/فروش موجودی",
-      "quantity": "مقدار (متر)",
+      "quantity": "مقدار",
       "supplierHint": "برای خرید ضروری است.",
       "buyerHint": "برای فروش ضروری است.",
       "credit": "نسیه؟",
@@ -344,7 +458,8 @@
       "creditYes": "بلی — نسیه",
       "amountPaid": "مقدار پرداخت‌شده فعلی",
       "amountPaidHint": "اختیاری — در صورت نسیه، بخش پرداخت‌شده به‌عنوان پرداخت فوری ثبت می‌شود.",
-      "recorded": "معامله ثبت شد."
+      "recorded": "معامله ثبت شد.",
+      "pricePerUnit": "قیمت به واحد"
     },
     "reminder": {
       "repeats": "تکرار",
@@ -372,6 +487,110 @@
       "inventory": "موجودی",
       "partners": "شریکان",
       "teller": "صندوق"
+    }
+  },
+  "units": {
+    "yard": "ګز",
+    "meter": "متر",
+    "m": "م",
+    "yd": "ګز",
+    "perMeter": "به ګز"
+  },
+  "ledger": {
+    "openingBalance": "موجودی ابتدایی",
+    "total": "مجموع",
+    "date": "تاریخ",
+    "description": "توضیحات",
+    "balance": "باقی‌مانده",
+    "currency": "واحد پول",
+    "totalsInView": "مجموع در این نمایش",
+    "openingBalanceNote": "موجودی ابتدایی (قبل از اولین معامله در نمایش)",
+    "bill": "بل",
+    "receivedBy": "دریافت‌کننده",
+    "labels": {
+      "buyer": {
+        "debit": "بدهکار (اجناس داده شده)",
+        "credit": "بستانکار (پول دریافتی)"
+      },
+      "supplier": {
+        "debit": "بدهکار (پرداخت شده)",
+        "credit": "بستانکار (پوشاک گرفته شده)"
+      },
+      "teller": {
+        "debit": "بدهکار (پول ورودی)",
+        "credit": "بستانکار (پول خروجی)"
+      }
+    },
+    "sources": {
+      "sale": "فروش",
+      "purchase": "خرید",
+      "teller": "صندوق",
+      "manual": "دستی"
+    }
+  },
+  "expenses": {
+    "title": "مصارف",
+    "subtitle": "مصارف روزانه دکان: کرایه، گدام، مالیه، آشپزخانه، انتقال و برق.",
+    "totals": "مجموع مصارف",
+    "totalAFN": "مجموع افغانی",
+    "totalUSD": "مجموع دالر",
+    "add": "افزودن مصرف",
+    "record": "ثبت مصرف",
+    "history": "تاریخچه مصارف",
+    "empty": "هنوز مصرفی ثبت نشده است.",
+    "edit": "ویرایش مصرف",
+    "fields": {
+      "category": "کتګوری",
+      "name": "توضیحات / نام دلخواه",
+      "nameHint": "اختیاری — مثلاً تیل جنراتور",
+      "employee": "کارمند",
+      "selectEmployee": "یک کارمند انتخاب کنید",
+      "salaryHint": "مبلغ و واحد پول از معاش ثبت‌شده کارمند پر می‌شود."
+    },
+    "categories": {
+      "shopRent": "کرایه دکان",
+      "warehouseRent": "کرایه گدام",
+      "yearlyTaxes": "مالیات سالانه",
+      "kitchenDaily": "مصارف روزانه آشپزخانه",
+      "dailyOther": "مصارف روزانه دیگر",
+      "clothTransfer": "انتقال پارچه به دکان (کرایه موتر)",
+      "electricity": "بل برق",
+      "other": "دیگر",
+      "salary": "معاش"
+    }
+  },
+  "employees": {
+    "title": "کارمندان",
+    "subtitle": "کارمندان دکان که نام‌شان می‌تواند دریافت‌کننده پرداخت باشد.",
+    "add": "افزودن کارمند",
+    "record": "افزودن کارمند",
+    "list": "کارمندان",
+    "empty": "هنوز کارمندی وجود ندارد.",
+    "edit": "ویرایش کارمند",
+    "fields": {
+      "role": "وظیفه / عنوان",
+      "salary": "معاش",
+      "salaryCurrency": "واحد پول معاش"
+    }
+  },
+  "bills": {
+    "title": "جستجوی بل",
+    "subtitle": "یافتن ثبت خریدار یا تأمین‌کننده با شماره بل.",
+    "billNo": "شماره بل",
+    "placeholder": "مثلاً 202",
+    "search": "جستجو",
+    "resultsFor": "نتایج برای بل {billNo}",
+    "noResults": "برای این شماره بل ثبتی یافت نشد.",
+    "party": "طرف معامله",
+    "kind": "دفتر",
+    "buyer": "خریدار",
+    "supplier": "تأمین‌کننده",
+    "types": {
+      "goods": "اجناس داده شده",
+      "payment": "پرداخت",
+      "purchase": "خرید",
+      "sale": "فروش",
+      "adjustment": "اصلاح"
     }
   }
 }

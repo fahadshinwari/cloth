@@ -21,6 +21,10 @@ const supplierLedgerEntrySchema = new Schema(
     /** Integer minor units (see lib/money.ts) — never a float. */
     amountMinor: { type: Number, required: true, min: 1 },
     currency: { type: String, enum: CURRENCIES, required: true },
+    /** Optional bill/invoice number for searching this entry later. */
+    billNo: { type: String, trim: true, maxlength: 40, default: "" },
+    /** Who received this payment (expense category/employee name). */
+    receivedBy: { type: String, trim: true, maxlength: 120, default: "" },
     /** Business date chosen by the merchant. */
     occurredAt: { type: Date, required: true },
     note: { type: String, trim: true, maxlength: 2000, default: "" },
@@ -45,6 +49,7 @@ const supplierLedgerEntrySchema = new Schema(
 
 supplierLedgerEntrySchema.index({ tenantId: 1, supplierId: 1, occurredAt: -1 });
 supplierLedgerEntrySchema.index({ tenantId: 1, type: 1, currency: 1 });
+supplierLedgerEntrySchema.index({ tenantId: 1, billNo: 1 });
 
 export type SupplierLedgerEntry = InferSchemaType<typeof supplierLedgerEntrySchema>;
 

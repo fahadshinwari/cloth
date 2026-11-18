@@ -5,6 +5,7 @@ import {
   toggleAdvancePaymentsAction,
   toggleNegativeInventoryAction,
 } from "@/app/actions/tenant.actions";
+import { useI18n } from "../../../../_components/i18n-provider";
 
 export function InventorySettingsForm({
   shopId,
@@ -15,6 +16,7 @@ export function InventorySettingsForm({
   allowNegativeInventory: boolean;
   allowAdvancePayments: boolean;
 }) {
+  const { t } = useI18n();
   const [pending, startTransition] = useTransition();
 
   const buttonClass =
@@ -24,10 +26,9 @@ export function InventorySettingsForm({
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium">Allow negative inventory</p>
+          <p className="text-sm font-medium">{t("admin.settings.allowNegativeInventory")}</p>
           <p className="mt-1 text-xs text-zinc-500">
-            When off, sales that would push a cloth&apos;s stock below zero are rejected. Stock
-            corrections should be recorded as ADJUSTMENT transactions instead.
+            {t("admin.settings.allowNegativeInventoryHint")}
           </p>
         </div>
         <button
@@ -39,16 +40,19 @@ export function InventorySettingsForm({
           className={buttonClass}
           dir="ltr"
         >
-          {pending ? "…" : allowNegativeInventory ? "Allowed — turn off" : "Not allowed — turn on"}
+          {pending
+            ? "…"
+            : allowNegativeInventory
+              ? t("admin.settings.allowed")
+              : t("admin.settings.notAllowed")}
         </button>
       </div>
 
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium">Allow advance payments</p>
+          <p className="text-sm font-medium">{t("admin.settings.allowAdvancePayments")}</p>
           <p className="mt-1 text-xs text-zinc-500">
-            When off, payments exceeding the counterparty&apos;s outstanding balance are rejected.
-            Turn on only if this merchant deliberately records advance/over payments.
+            {t("admin.settings.allowAdvancePaymentsHint")}
           </p>
         </div>
         <button
@@ -60,7 +64,11 @@ export function InventorySettingsForm({
           className={buttonClass}
           dir="ltr"
         >
-          {pending ? "…" : allowAdvancePayments ? "Allowed — turn off" : "Not allowed — turn on"}
+          {pending
+            ? "…"
+            : allowAdvancePayments
+              ? t("admin.settings.allowed")
+              : t("admin.settings.notAllowed")}
         </button>
       </div>
     </div>

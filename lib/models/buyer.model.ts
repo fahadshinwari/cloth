@@ -12,6 +12,8 @@ const buyerSchema = new Schema(
       required: true,
       index: true,
     },
+    /** Unique, searchable business code (e.g. "BY-1042"). */
+    code: { type: String, required: true, trim: true, uppercase: true, maxlength: 40 },
     name: { type: String, required: true, trim: true, maxlength: 120 },
     shopName: { type: String, trim: true, maxlength: 120, default: "" },
     phone: { type: String, trim: true, maxlength: 40, default: "" },
@@ -36,6 +38,19 @@ const buyerSchema = new Schema(
 
 buyerSchema.index({ tenantId: 1, name: 1 });
 buyerSchema.index({ tenantId: 1, createdAt: -1 });
+// Codes are unique per shop. Partial so legacy rows without a code are ignored.
+buyerSchema.index(
+  { tenantId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { code: { $type: "string", $gt: "" } } },
+);
+
+/**
+ * Dev-only schema refresh: hot reload can keep an old model that silently
+ * drops newly added fields such as `code`.
+ */
+if (process.env.NODE_ENV !== "production") {
+  delete mongoose.models.Buyer;
+}
 
 export type Buyer = InferSchemaType<typeof buyerSchema>;
 

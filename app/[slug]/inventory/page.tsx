@@ -5,7 +5,7 @@ import { getAuthContext } from "@/lib/auth";
 import { getShopBySlug } from "@/lib/services/tenant.service";
 import { getInventorySummary } from "@/lib/services/inventory.service";
 import { formatMinorAmount } from "@/lib/i18n/format";
-import { formatMeters } from "@/lib/measure";
+import { formatQuantity, pricePerYardMinor } from "@/lib/measure";
 import { getTranslator } from "@/lib/i18n/dictionaries";
 import { getRequestLocale } from "@/lib/i18n/request";
 import { Card } from "../../_components/ui";
@@ -66,7 +66,7 @@ export default async function InventoryPage({
               {t("inventory.totalMeters")}
             </div>
             <div className="mt-1 text-lg font-semibold" dir="ltr">
-              {formatMeters(summary.totalMetersMm)}
+              {formatQuantity(summary.totalMetersMm, "yard", t("units.yd"))}
             </div>
           </div>
           <div>
@@ -99,6 +99,7 @@ export default async function InventoryPage({
             <thead>
               <tr className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800">
                 <th className="px-4 py-3 text-start font-medium">{t("inventory.fields.cloth")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("inventory.fields.code")}</th>
                 <th className="px-4 py-3 text-start font-medium">{t("inventory.fields.category")}</th>
                 <th className="px-4 py-3 text-start font-medium">{t("inventory.totalMeters")}</th>
                 <th className="px-4 py-3 text-start font-medium">{t("inventory.fields.pricePerMeter")}</th>
@@ -119,12 +120,15 @@ export default async function InventoryPage({
                       {cloth.name}
                     </Link>
                   </td>
+                  <td className="px-4 py-3 text-zinc-500" dir="ltr">{cloth.code || "—"}</td>
                   <td className="px-4 py-3 text-zinc-500">{cloth.category || "—"}</td>
                   <td className="px-4 py-3" dir="ltr">
-                    {formatMeters(stockMm)}
+                    {formatQuantity(stockMm, "yard", t("units.yd"))}
                   </td>
                   <td className="px-4 py-3" dir="ltr">
-                    {formatMinorAmount(cloth.pricePerMeterMinor, cloth.currency)} / m
+                    {cloth.unit === "meter"
+                      ? `${formatMinorAmount(cloth.pricePerMeterMinor, cloth.currency)} / ${t("units.m")}`
+                      : `${formatMinorAmount(pricePerYardMinor(cloth.pricePerMeterMinor), cloth.currency)} / ${t("units.yd")}`}
                   </td>
                   <td className="px-4 py-3 font-medium" dir="ltr">
                     {formatMinorAmount(valueMinor, cloth.currency)}

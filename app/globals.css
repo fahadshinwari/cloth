@@ -57,3 +57,29 @@ button {
     font-size: 16px;
   }
 }
+
+/* Printing: hide app chrome and any section excluded by PrintButton. */
+@media print {
+  header,
+  nav,
+  .no-print,
+  .print-hidden {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  [data-print-root] {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+}

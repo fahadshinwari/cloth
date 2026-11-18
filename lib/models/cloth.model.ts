@@ -1,5 +1,5 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
-import { CURRENCIES } from "../constants";
+import { CLOTH_UNITS, DEFAULT_CLOTH_UNIT, CURRENCIES } from "../constants";
 
 const clothSchema = new Schema(
   {
@@ -11,6 +11,15 @@ const clothSchema = new Schema(
       index: true,
     },
     name: { type: String, required: true, trim: true, maxlength: 120 },
+    /** Merchant-defined clothes code, e.g. CL-1042. Unique per tenant. */
+    code: { type: String, trim: true, maxlength: 60, default: "" },
+    /** Preferred buying/selling unit. Defaults to yards; meters also allowed. */
+    unit: {
+      type: String,
+      enum: CLOTH_UNITS,
+      required: true,
+      default: DEFAULT_CLOTH_UNIT,
+    },
     /** Type/category, e.g. Linen, Cotton, Silk. */
     category: { type: String, trim: true, maxlength: 120, default: "" },
     description: { type: String, trim: true, maxlength: 2000, default: "" },
@@ -42,6 +51,7 @@ const clothSchema = new Schema(
 );
 
 clothSchema.index({ tenantId: 1, name: 1 });
+clothSchema.index({ tenantId: 1, code: 1 });
 clothSchema.index({ tenantId: 1, supplierId: 1 });
 
 export type Cloth = InferSchemaType<typeof clothSchema>;

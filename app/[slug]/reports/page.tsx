@@ -10,6 +10,7 @@ import { parseReportParams, toReportFilters, REPORT_TYPES } from "@/lib/report-p
 import { getTranslator } from "@/lib/i18n/dictionaries";
 import { getRequestLocale } from "@/lib/i18n/request";
 import { Card } from "../../_components/ui";
+import { PrintButton } from "../../_components/print-button";
 import { ReportTypeNav } from "../_components/report-type-nav";
 
 interface ReportsPageProps {
@@ -77,7 +78,13 @@ export default async function ReportsPage({ params, searchParams }: ReportsPageP
   let table = null;
   let errors: Record<string, string> | null = null;
   if (parsed.success) {
-    table = await buildReportTable(String(shop._id), parsed.data.type, toReportFilters(parsed.data), parsed.data.bucket ?? "day");
+    table = await buildReportTable(
+      String(shop._id),
+      parsed.data.type,
+      toReportFilters(parsed.data),
+      parsed.data.bucket ?? "day",
+      locale,
+    );
   } else {
     errors = parsed.errors;
   }
@@ -95,6 +102,8 @@ export default async function ReportsPage({ params, searchParams }: ReportsPageP
   if (resolved.bucket) exportQuery.set("bucket", resolved.bucket);
   const exportBase = `/api/tenants/${slug}/reports/export?${exportQuery.toString()}`;
 
+  const filterLabel = "text-xs font-medium uppercase tracking-wide text-zinc-500";
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -108,58 +117,57 @@ export default async function ReportsPage({ params, searchParams }: ReportsPageP
         {/* Filters: date range, currency, buyer, supplier, cloth, transaction type */}
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">From</span>
+            <span className={filterLabel}>{t("reports.filters.from")}</span>
             <input type="date" name="from" form="report-filters" defaultValue={resolved.from} dir="ltr" className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">To</span>
+            <span className={filterLabel}>{t("reports.filters.to")}</span>
             <input type="date" name="to" form="report-filters" defaultValue={resolved.to} dir="ltr" className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">Currency</span>
+            <span className={filterLabel}>{t("reports.filters.currency")}</span>
             <select name="currency" form="report-filters" defaultValue={resolved.currency} className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
-              <option value="">All</option>
+              <option value="">{t("reports.filters.all")}</option>
               <option value="AFN">AFN</option>
               <option value="USD">USD</option>
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">Transaction type</span>
+            <span className={filterLabel}>{t("reports.filters.transactionType")}</span>
             <select name="transactionType" form="report-filters" defaultValue={resolved.transactionType} className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
-              <option value="">All</option>
-              <option value="goods">Goods given</option>
-              <option value="payment">Payment</option>
-              <option value="purchase">Purchase</option>
-              <option value="add">Cash in</option>
-              <option value="remove">Cash out</option>
+              <option value="">{t("reports.filters.all")}</option>
+              <option value="goods">{t("buyers.entryGoods")}</option>
+              <option value="payment">{t("buyers.entryPayment")}</option>
+              <option value="purchase">{t("suppliers.entryPurchase")}</option>
+              <option value="add">{t("teller.typeAdd")}</option>
+              <option value="remove">{t("teller.typeRemove")}</option>
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">Buyer</span>
+            <span className={filterLabel}>{t("reports.filters.buyer")}</span>
             <select name="buyerId" form="report-filters" defaultValue={resolved.buyerId} className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
-              <option value="">All</option>
+              <option value="">{t("reports.filters.all")}</option>
               {buyers.map((buyer) => (
                 <option key={String(buyer._id)} value={String(buyer._id)}>{buyer.name}</option>
               ))}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">Supplier</span>
+            <span className={filterLabel}>{t("reports.filters.supplier")}</span>
             <select name="supplierId" form="report-filters" defaultValue={resolved.supplierId} className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
-              <option value="">All</option>
+              <option value="">{t("reports.filters.all")}</option>
               {suppliers.map((supplier) => (
                 <option key={String(supplier._id)} value={String(supplier._id)}>{supplier.name}</option>
               ))}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">Cloth</span>
+            <span className={filterLabel}>{t("reports.filters.cloth")}</span>
             <select name="clothId" form="report-filters" defaultValue={resolved.clothId} className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
-              <option value="">All</option>
+              <option value="">{t("reports.filters.all")}</option>
               {cloths.map((cloth) => (
                 <option key={String(cloth._id)} value={String(cloth._id)}>{cloth.name}</option>
               ))}
-              <option value="">—</option>
             </select>
           </label>
         </div>
@@ -167,16 +175,17 @@ export default async function ReportsPage({ params, searchParams }: ReportsPageP
         <form id="report-filters" method="get" className="mt-3">
           <input type="hidden" name="type" value={type} />
           <button type="submit" className="inline-flex h-10 items-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900">
-            Apply filters
+            {t("reports.applyFilters")}
           </button>
         </form>
 
         <div className="mt-4 flex flex-wrap gap-2">
+          <PrintButton label={t("common.print")} />
+          <a href={`${exportBase}&format=xlsx`} className="inline-flex h-10 items-center rounded-md border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+            {t("reports.downloadXlsx")}
+          </a>
           <a href={`${exportBase}&format=csv`} className="inline-flex h-10 items-center rounded-md border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
             {t("reports.downloadCsv")}
-          </a>
-          <a href={`${exportBase}&format=pdf`} className="inline-flex h-10 items-center rounded-md border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
-            {t("reports.downloadPdf")}
           </a>
         </div>
       </Card>

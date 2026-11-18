@@ -2,12 +2,14 @@
 
 import { useActionState } from "react";
 import type { ResetCredentialsState } from "@/app/actions/tenant.actions";
+import { useI18n } from "../../../../_components/i18n-provider";
 
 export function ResetCredentialsForm({
   action,
 }: {
   action: (state: ResetCredentialsState, formData: FormData) => Promise<ResetCredentialsState>;
 }) {
+  const { t } = useI18n();
   const [state, formAction, pending] = useActionState(action, {} as ResetCredentialsState);
   const fieldErrors = state.fieldErrors ?? {};
 
@@ -17,7 +19,7 @@ export function ResetCredentialsForm({
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">New email (optional)</span>
+        <span className="font-medium">{t("admin.actions.newEmail")}</span>
         <input name="adminEmail" type="email" dir="ltr" className={inputClass} />
         {fieldErrors.adminEmail ? (
           <span className="text-xs text-red-600">{fieldErrors.adminEmail}</span>
@@ -25,14 +27,14 @@ export function ResetCredentialsForm({
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">New password (optional)</span>
+        <span className="font-medium">{t("admin.actions.newPassword")}</span>
         <input name="adminPassword" type="password" autoComplete="new-password" dir="ltr" className={inputClass} />
         {fieldErrors.adminPassword ? (
           <span className="text-xs text-red-600">{fieldErrors.adminPassword}</span>
         ) : null}
       </label>
 
-      {state.ok ? <p className="text-sm text-emerald-600 sm:col-span-2">Credentials updated.</p> : null}
+      {state.ok ? <p className="text-sm text-emerald-600 sm:col-span-2">{t("admin.actions.credentialsUpdated")}</p> : null}
       {state.error ? <p className="text-sm text-red-600 sm:col-span-2">{state.error}</p> : null}
 
       <div className="sm:col-span-2">
@@ -41,7 +43,7 @@ export function ResetCredentialsForm({
           disabled={pending}
           className="inline-flex h-10 items-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-white dark:text-zinc-900"
         >
-          {pending ? "…" : "Update credentials"}
+          {pending ? "…" : t("admin.actions.updateCredentials")}
         </button>
       </div>
     </form>

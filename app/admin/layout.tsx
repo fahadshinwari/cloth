@@ -6,6 +6,7 @@ import { getTranslator } from "@/lib/i18n/dictionaries";
 import { getRequestLocale } from "@/lib/i18n/request";
 import { LanguageSwitcher } from "../_components/language-switcher";
 import { LogoutButton } from "../_components/logout-button";
+import { I18nProvider } from "../_components/i18n-provider";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const session = await getSession();
@@ -37,7 +38,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+        <I18nProvider locale={locale}>{children}</I18nProvider>
+      </main>
     </div>
   );
 }

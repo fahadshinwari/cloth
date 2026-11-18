@@ -28,8 +28,8 @@ async function main() {
   }))._id);
 
   const cotton = await createCloth(tenantId, user, { name: "Cotton", category: "", description: "", pricePerMeter: "100", currency: "AFN", supplierId: null, lowStockThresholdMeters: "", notes: "" });
-  const sup = await createSupplier(tenantId, user, { name: "Supplier A", companyName: "", phone: "", address: "", notes: "", status: "active" });
-  const buyer = await createBuyer(tenantId, user, { name: "Ahmad", shopName: "", phone: "", address: "", notes: "", status: "active" });
+  const sup = await createSupplier(tenantId, user, { code: "C1", name: "Supplier A", companyName: "", phone: "", address: "", notes: "", status: "active" });
+  const buyer = await createBuyer(tenantId, user, { code: "C2", name: "Ahmad", shopName: "", phone: "", address: "", notes: "", status: "active" });
 
   await recordInventoryTransaction(tenantId, user, {
     clothId: String(cotton._id), direction: "in", sourceType: "purchase",

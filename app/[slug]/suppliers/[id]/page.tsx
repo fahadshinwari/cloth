@@ -7,15 +7,18 @@ import {
   getSupplierById,
   getSupplierLedgerTotals,
   getSupplierLedgerView,
+  listSupplierLedgerEntries,
 } from "@/lib/services/supplier.service";
 import { listMovements, listCloths } from "@/lib/services/inventory.service";
+import { listEmployees } from "@/lib/services/employee.service";
 import { formatDate, formatMinorAmount } from "@/lib/i18n/format";
-import { formatMeters } from "@/lib/measure";
+import { formatQuantity } from "@/lib/measure";
 import { getTranslator } from "@/lib/i18n/dictionaries";
 import { getRequestLocale } from "@/lib/i18n/request";
 import { createSupplierLedgerEntryAction, updateSupplierAction } from "@/app/actions/supplier.actions";
 import { LedgerTable } from "../../_components/ledger-table";
 import { LedgerFilters } from "../../_components/ledger-filters";
+import { LedgerEntryActions } from "../../_components/ledger-entry-actions";
 import { ledgerFiltersFromSearchParams } from "@/lib/ledger-params";
 import { Card, StatusBadge } from "../../../_components/ui";
 import { SupplierForm } from "../../_components/party-form";
@@ -48,12 +51,22 @@ export default async function SupplierDetailPage({
   const supplier = await getSupplierById(tenantId, id);
   if (!supplier) notFound();
 
-  const [ledgerView, totals, movements, cloths] = await Promise.all([
-    getSupplierLedgerView(tenantId, id, filters),
-    getSupplierLedgerTotals(tenantId, id),
-    listMovements(tenantId, { supplierId: id, limit: 100 }),
-    listCloths(tenantId),
-  ]);
+  const [ledgerView, totals, movements, cloths, employees, ledgerEntries] =
+    await Promise.all([
+      getSupplierLedgerView(tenantId, id, filters),
+      getSupplierLedgerTotals(tenantId, id),
+      listMovements(tenantId, { supplierId: id, limit: 100 }),
+      listCloths(tenantId),
+      listEmployees(tenantId),
+      listSupplierLedgerEntries(tenantId, id),
+    ]);
+
+  // "Received by" is strictly the shop's active employee list.
+  const employeeNames = employees
+    .filter((employee) => employee.status === "active")
+    .map((employee) => employee.name);
+  const receivedByOptions = employeeNames;
+  const entriesById = new Map(ledgerEntries.map((entry) => [String(entry._id), entry]));
 
   const clothNames = new Map(cloths.map((cloth) => [String(cloth._id), cloth.name]));
 
@@ -65,11 +78,12 @@ export default async function SupplierDetailPage({
         </Link>
         <h1 className="mt-2 flex items-center gap-3 text-2xl font-semibold tracking-tight">
           {supplier.name}
-          <StatusBadge status={supplier.status} />
+          <StatusBadge status={supplier.status} locale={locale} />
         </h1>
-        {supplier.companyName ? (
-          <p className="mt-1 text-sm text-zinc-500">{supplier.companyName}</p>
-        ) : null}
+        <p className="mt-1 text-sm text-zinc-500" dir="ltr">
+          {t("suppliers.fields.code")}: <span className="font-medium">{supplier.code || "—"}</span>
+          {supplier.companyName ? ` · ${supplier.companyName}` : ""}
+        </p>
       </div>
 
       {/* Payable balance — derived from ledger entries, per currency. */}
@@ -123,6 +137,7 @@ export default async function SupplierDetailPage({
             name: cloth.name,
             currency: cloth.currency,
             pricePerMeter: String(cloth.pricePerMeterMinor / 100),
+            unit: cloth.unit,
           }))}
           submitLabel={t("suppliers.recordPurchase")}
         />
@@ -144,6 +159,7 @@ export default async function SupplierDetailPage({
               { value: "purchase", label: t("suppliers.entryPurchase") },
             ],
           }}
+          receivedByOptions={receivedByOptions}
           submitLabel={t("buyers.record")}
         />
       </Card>
@@ -162,7 +178,41 @@ export default async function SupplierDetailPage({
             ]}
           />
         </div>
-        <LedgerTable view={ledgerView} kind="supplier" locale={locale} emptyMessage={t("buyers.noEntries")} />
+        <LedgerTable
+          view={ledgerView}
+          kind="supplier"
+          locale={locale}
+          emptyMessage={t("buyers.noEntries")}
+          printId="supplier-ledger-print"
+          printTitle={`${supplier.name} — ${t("suppliers.history")}`}
+          renderRowActions={(row) => {
+            const entry = entriesById.get(row.id);
+            if (!entry) return null;
+            return (
+              <LedgerEntryActions
+                kind="supplier"
+                entry={{
+                  id: String(entry._id),
+                  type: entry.type,
+                  amount: String(entry.amountMinor / 100),
+                  currency: entry.currency as "AFN" | "USD",
+                  date: entry.occurredAt.toISOString(),
+                  note: entry.note ?? "",
+                  billNo: entry.billNo ?? "",
+                  receivedBy: entry.receivedBy ?? "",
+                  locked: Boolean(entry.inventoryMovementId),
+                }}
+                typeOptions={[
+                  { value: "payment", label: t("suppliers.entryPayment") },
+                  { value: "purchase", label: t("suppliers.entryPurchase") },
+                ]}
+                employeeNames={employeeNames}
+                canEdit={ctx.permissions.includes("ledger.edit")}
+                canDelete={ctx.permissions.includes("ledger.delete")}
+              />
+            );
+          }}
+        />
       </Card>
 
       {movements.length > 0 ? (
@@ -196,7 +246,12 @@ export default async function SupplierDetailPage({
                       </Link>
                     </td>
                     <td className="px-4 py-3" dir="ltr">
-                      {movement.direction === "in" ? "+" : "−"} {formatMeters(movement.quantityMm)}
+                      {movement.direction === "in" ? "+" : "−"}{" "}
+                      {formatQuantity(
+                        movement.quantityMm,
+                        movement.unit === "yard" ? "yard" : "meter",
+                        t(movement.unit === "yard" ? "units.yd" : "units.m"),
+                      )}
                     </td>
                     <td className="px-4 py-3 font-medium" dir="ltr">
                       {formatMinorAmount(movement.totalValueMinor, movement.currency)}
@@ -216,6 +271,7 @@ export default async function SupplierDetailPage({
         <SupplierForm
           action={updateSupplierAction.bind(null, String(supplier._id))}
           values={{
+            code: supplier.code,
             name: supplier.name,
             companyName: supplier.companyName,
             phone: supplier.phone,

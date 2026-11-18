@@ -90,7 +90,7 @@ async function main() {
         amountMinor: movement.totalValueMinor,
         currency: movement.currency,
         occurredAt: movement.occurredAt,
-        note: movement.note || `Backfilled purchase: ${movement.quantityMm / 1000} m`,
+        note: movement.note || "Backfilled purchase",
         inventoryMovementId: movementId,
         createdBy: movement.createdBy,
       });
@@ -113,7 +113,7 @@ async function main() {
         amountMinor: movement.totalValueMinor,
         currency: movement.currency,
         occurredAt: movement.occurredAt,
-        note: movement.note || `Backfilled sale: ${movement.quantityMm / 1000} m`,
+        note: movement.note || "Backfilled sale",
         inventoryMovementId: movementId,
         createdBy: movement.createdBy,
       });

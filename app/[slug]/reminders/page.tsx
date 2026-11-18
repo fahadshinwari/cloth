@@ -114,7 +114,7 @@ export default async function RemindersPage({
                         >
                           {t(`reminders.states.${view.state}`)}
                         </span>
-                        {!view.reminder.active ? <StatusBadge status="inactive" /> : null}
+                        {!view.reminder.active ? <StatusBadge status="inactive" locale={locale} /> : null}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-zinc-500">{view.reminder.note || "—"}</td>

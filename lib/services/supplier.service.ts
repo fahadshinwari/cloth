@@ -9,6 +9,7 @@ import {
   type RawLedgerEntry,
 } from "../ledger";
 import {
+  LedgerEntryAuditModel,
   ShopModel,
   SupplierLedgerEntryModel,
   SupplierModel,
@@ -18,7 +19,11 @@ import {
 import { connectToDatabase } from "../mongodb";
 import { fromMinorUnits, toMinorUnits } from "../money";
 import { SUPPLIER_LEDGER_ENTRY_TYPE } from "../constants";
-import type { SupplierInput, SupplierLedgerEntryInput } from "../validation";
+import type {
+  SupplierInput,
+  SupplierLedgerEntryInput,
+  SupplierLedgerEntryUpdateInput,
+} from "../validation";
 
 export class SupplierServiceError extends Error {
   field?: string;
@@ -76,6 +81,8 @@ export function toSupplierLedgerEntries(
     currency: entry.currency as "AFN" | "USD",
     type: entry.type,
     source: entry.inventoryMovementId ? "purchase" : "manual",
+    billNo: entry.billNo ?? "",
+    receivedBy: entry.receivedBy ?? "",
   }));
 }
 
@@ -111,8 +118,17 @@ export async function createSupplier(
     throw new SupplierServiceError("A supplier with this name already exists.", "name");
   }
 
+  const duplicateCode = await SupplierModel.findOne({
+    tenantId: toObjectId(tenantId),
+    code: input.code,
+  });
+  if (duplicateCode) {
+    throw new SupplierServiceError("A supplier with this code already exists.", "code");
+  }
+
   return SupplierModel.create({
     tenantId: toObjectId(tenantId),
+    code: input.code,
     name: input.name,
     companyName: input.companyName,
     phone: input.phone,
@@ -145,6 +161,16 @@ export async function updateSupplier(
     throw new SupplierServiceError("A supplier with this name already exists.", "name");
   }
 
+  const duplicateCode = await SupplierModel.findOne({
+    tenantId: toObjectId(tenantId),
+    code: input.code,
+    _id: { $ne: supplier._id },
+  });
+  if (duplicateCode) {
+    throw new SupplierServiceError("A supplier with this code already exists.", "code");
+  }
+
+  supplier.code = input.code;
   supplier.name = input.name;
   supplier.companyName = input.companyName;
   supplier.phone = input.phone;
@@ -224,22 +250,105 @@ export async function createSupplierLedgerEntry(
     currency: input.currency,
     occurredAt: input.occurredAt,
     note: input.note,
+    billNo: input.billNo ?? "",
+    receivedBy: input.type === SUPPLIER_LEDGER_ENTRY_TYPE.PAYMENT ? input.receivedBy ?? "" : "",
     createdBy: toObjectId(userId),
   });
 }
 
 /**
+ * Edits a MANUAL supplier ledger entry. Inventory-linked entries are immutable
+ * here. Every edit requires a reason and writes a before/after audit record.
+ */
+export async function updateSupplierLedgerEntry(
+  tenantId: string,
+  userId: string,
+  entryId: string,
+  input: SupplierLedgerEntryUpdateInput,
+): Promise<SupplierLedgerEntryDocument> {
+  assertTenantId(tenantId);
+  if (!/^[a-f\d]{24}$/i.test(entryId)) {
+    throw new SupplierServiceError("Ledger entry not found.");
+  }
+  await connectToDatabase();
+
+  const entry = await SupplierLedgerEntryModel.findOne({
+    _id: toObjectId(entryId),
+    tenantId: toObjectId(tenantId),
+  });
+  if (!entry) throw new SupplierServiceError("Ledger entry not found.");
+  if (entry.inventoryMovementId) {
+    throw new SupplierServiceError(
+      "This entry is part of an inventory transaction and cannot be edited. Record a reversing purchase or payment instead.",
+    );
+  }
+
+  const amountMinor = toMinorUnits(input.amount, input.currency);
+  if (amountMinor === null || amountMinor <= 0) {
+    throw new SupplierServiceError("Invalid ledger amount.", "amount");
+  }
+
+  // Overpayment guard on edits, excluding the old version of this same entry.
+  if (input.type === SUPPLIER_LEDGER_ENTRY_TYPE.PAYMENT) {
+    const shop = await ShopModel.findById(tenantId).select("allowAdvancePayments").lean();
+    if (!shop?.allowAdvancePayments) {
+      const totals = await getSupplierLedgerTotals(tenantId, String(entry.supplierId));
+      let available = totals.payable[input.currency as "AFN" | "USD"];
+      if (entry.currency === input.currency) {
+        available -=
+          entry.type === SUPPLIER_LEDGER_ENTRY_TYPE.PURCHASE ? entry.amountMinor : -entry.amountMinor;
+      }
+      if (amountMinor > available) {
+        throw new SupplierServiceError("Payment exceeds outstanding payable.", "amount");
+      }
+    }
+  }
+
+  const before = entry.toObject();
+
+  entry.type = input.type;
+  entry.amountMinor = amountMinor;
+  entry.currency = input.currency;
+  entry.occurredAt = input.occurredAt;
+  entry.note = input.note;
+  entry.billNo = input.billNo;
+  entry.receivedBy = input.type === SUPPLIER_LEDGER_ENTRY_TYPE.PAYMENT ? input.receivedBy : "";
+  await entry.save();
+
+  await LedgerEntryAuditModel.create({
+    tenantId: toObjectId(tenantId),
+    ledger: "supplier",
+    entryId: entry._id,
+    action: "update",
+    reason: input.reason,
+    before,
+    after: entry.toObject(),
+    performedBy: toObjectId(userId),
+  });
+
+  return entry;
+}
+
+/**
  * Deletes a MANUAL supplier ledger entry. Entries linked to an inventory
  * movement must never be deleted alone — correct them with a reversing
- * entry instead, so financial history is preserved.
+ * entry instead, so financial history is preserved. A reason is mandatory
+ * and the deletion is audited.
  */
 export async function deleteSupplierLedgerEntry(
   tenantId: string,
+  userId: string,
   entryId: string,
+  reason: string,
 ): Promise<void> {
   assertTenantId(tenantId);
   if (!/^[a-f\d]{24}$/i.test(entryId)) return;
   await connectToDatabase();
+
+  const cleanReason = reason.trim();
+  if (cleanReason.length < 3) {
+    throw new SupplierServiceError("A reason is required to delete an entry.", "reason");
+  }
 
   const entry = await SupplierLedgerEntryModel.findOne({
     _id: toObjectId(entryId),
@@ -251,6 +360,18 @@ export async function deleteSupplierLedgerEntry(
       "This entry is part of an inventory transaction and cannot be deleted. Record a reversing purchase or payment instead.",
     );
   }
+
+  await LedgerEntryAuditModel.create({
+    tenantId: toObjectId(tenantId),
+    ledger: "supplier",
+    entryId: entry._id,
+    action: "delete",
+    reason: cleanReason,
+    before: entry.toObject(),
+    after: null,
+    performedBy: toObjectId(userId),
+  });
+
   await SupplierLedgerEntryModel.deleteOne({ _id: entry._id });
 }
 

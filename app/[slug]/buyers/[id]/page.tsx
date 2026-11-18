@@ -8,11 +8,13 @@ import {
   getBuyerLedgerTotals,
   getBuyerById,
   getBuyerLedgerView,
+  listLedgerEntries,
   listReminders,
 } from "@/lib/services/buyer.service";
 import { listCloths, listMovements } from "@/lib/services/inventory.service";
+import { listEmployees } from "@/lib/services/employee.service";
 import { formatDate, formatMinorAmount } from "@/lib/i18n/format";
-import { formatMeters } from "@/lib/measure";
+import { formatQuantity } from "@/lib/measure";
 import { getTranslator } from "@/lib/i18n/dictionaries";
 import { getRequestLocale } from "@/lib/i18n/request";
 import { createLedgerEntryAction, updateBuyerAction } from "@/app/actions/buyer.actions";
@@ -25,6 +27,7 @@ import { ReminderRowActions } from "../../_components/reminder-row-actions";
 import { InventoryTransactionForm } from "../../_components/inventory-transaction-form";
 import { LedgerTable } from "../../_components/ledger-table";
 import { LedgerFilters } from "../../_components/ledger-filters";
+import { LedgerEntryActions } from "../../_components/ledger-entry-actions";
 import { ledgerFiltersFromSearchParams } from "@/lib/ledger-params";
 
 export default async function BuyerDetailPage({
@@ -53,13 +56,23 @@ export default async function BuyerDetailPage({
   const buyer = await getBuyerById(tenantId, id);
   if (!buyer) notFound();
 
-  const [ledgerView, totals, reminders, cloths, movements] = await Promise.all([
-    getBuyerLedgerView(tenantId, id, filters),
-    getBuyerLedgerTotals(tenantId, id),
-    listReminders(tenantId, { buyerId: id }),
-    listCloths(tenantId),
-    listMovements(tenantId, { buyerId: id, limit: 100 }),
-  ]);
+  const [ledgerView, totals, reminders, cloths, movements, employees, ledgerEntries] =
+    await Promise.all([
+      getBuyerLedgerView(tenantId, id, filters),
+      getBuyerLedgerTotals(tenantId, id),
+      listReminders(tenantId, { buyerId: id }),
+      listCloths(tenantId),
+      listMovements(tenantId, { buyerId: id, limit: 100 }),
+      listEmployees(tenantId),
+      listLedgerEntries(tenantId, id),
+    ]);
+
+  // "Received by" is strictly the shop's active employee list.
+  const employeeNames = employees
+    .filter((employee) => employee.status === "active")
+    .map((employee) => employee.name);
+  const receivedByOptions = employeeNames;
+  const entriesById = new Map(ledgerEntries.map((entry) => [String(entry._id), entry]));
 
   const reminderViews = buildReminderViews(reminders, new Map([[String(buyer._id), buyer.name]]));
   const clothNames = new Map(cloths.map((cloth) => [String(cloth._id), cloth.name]));
@@ -72,9 +85,12 @@ export default async function BuyerDetailPage({
         </Link>
         <h1 className="mt-2 flex items-center gap-3 text-2xl font-semibold tracking-tight">
           {buyer.name}
-          <StatusBadge status={buyer.status} />
+          <StatusBadge status={buyer.status} locale={locale} />
         </h1>
-        {buyer.shopName ? <p className="mt-1 text-sm text-zinc-500">{buyer.shopName}</p> : null}
+        <p className="mt-1 text-sm text-zinc-500" dir="ltr">
+          {t("buyers.fields.code")}: <span className="font-medium">{buyer.code || "—"}</span>
+          {buyer.shopName ? ` · ${buyer.shopName}` : ""}
+        </p>
       </div>
 
       {/* Outstanding balance — derived from ledger entries, per currency. */}
@@ -129,6 +145,7 @@ export default async function BuyerDetailPage({
               name: cloth.name,
               currency: cloth.currency,
               pricePerMeter: String(cloth.pricePerMeterMinor / 100),
+              unit: cloth.unit,
             }))}
             buyers={[
               { id: String(buyer._id), name: buyer.name, shopName: buyer.shopName },
@@ -154,6 +171,7 @@ export default async function BuyerDetailPage({
               { value: "payment", label: t("buyers.entryPayment") },
             ],
           }}
+          receivedByOptions={receivedByOptions}
           submitLabel={t("buyers.record")}
         />
       </Card>
@@ -172,7 +190,41 @@ export default async function BuyerDetailPage({
             ]}
           />
         </div>
-        <LedgerTable view={ledgerView} kind="buyer" locale={locale} emptyMessage={t("buyers.noEntries")} />
+        <LedgerTable
+          view={ledgerView}
+          kind="buyer"
+          locale={locale}
+          emptyMessage={t("buyers.noEntries")}
+          printId="buyer-ledger-print"
+          printTitle={`${buyer.name} — ${t("buyers.history")}`}
+          renderRowActions={(row) => {
+            const entry = entriesById.get(row.id);
+            if (!entry) return null;
+            return (
+              <LedgerEntryActions
+                kind="buyer"
+                entry={{
+                  id: String(entry._id),
+                  type: entry.type,
+                  amount: String(entry.amountMinor / 100),
+                  currency: entry.currency as "AFN" | "USD",
+                  date: entry.occurredAt.toISOString(),
+                  note: entry.note ?? "",
+                  billNo: entry.billNo ?? "",
+                  receivedBy: entry.receivedBy ?? "",
+                  locked: Boolean(entry.inventoryMovementId),
+                }}
+                typeOptions={[
+                  { value: "goods", label: t("buyers.entryGoods") },
+                  { value: "payment", label: t("buyers.entryPayment") },
+                ]}
+                employeeNames={employeeNames}
+                canEdit={ctx.permissions.includes("ledger.edit")}
+                canDelete={ctx.permissions.includes("ledger.delete")}
+              />
+            );
+          }}
+        />
       </Card>
 
       {movements.length > 0 ? (
@@ -206,7 +258,12 @@ export default async function BuyerDetailPage({
                       </Link>
                     </td>
                     <td className="px-4 py-3" dir="ltr">
-                      {movement.direction === "in" ? "+" : "−"} {formatMeters(movement.quantityMm)}
+                      {movement.direction === "in" ? "+" : "−"}{" "}
+                      {formatQuantity(
+                        movement.quantityMm,
+                        movement.unit === "yard" ? "yard" : "meter",
+                        t(movement.unit === "yard" ? "units.yd" : "units.m"),
+                      )}
                     </td>
                     <td className="px-4 py-3 font-medium" dir="ltr">
                       {formatMinorAmount(movement.totalValueMinor, movement.currency)}
@@ -260,6 +317,7 @@ export default async function BuyerDetailPage({
           action={updateBuyerAction.bind(null, String(buyer._id))}
           withShopName
           values={{
+            code: buyer.code,
             name: buyer.name,
             shopName: buyer.shopName,
             phone: buyer.phone,

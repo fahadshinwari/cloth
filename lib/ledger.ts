@@ -73,6 +73,10 @@ export interface RawLedgerEntry {
   type: string;
   /** Optional provenance tag, e.g. sale, purchase, manual. */
   source?: string;
+  /** Optional bill/invoice number recorded with the entry. */
+  billNo?: string;
+  /** Who received a payment (payments only). */
+  receivedBy?: string;
 }
 
 export interface LedgerFilters {
@@ -94,6 +98,8 @@ export interface LedgerRow {
   balanceMinor: number;
   currency: Currency;
   source?: string;
+  billNo?: string;
+  receivedBy?: string;
 }
 
 export interface LedgerView {
@@ -176,6 +182,8 @@ export function buildLedgerView(
       balanceMinor: closing[entry.currency],
       currency: entry.currency,
       source: entry.source,
+      billNo: entry.billNo,
+      receivedBy: entry.receivedBy,
     };
   });
 

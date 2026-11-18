@@ -1,7 +1,10 @@
+import type { ReactNode } from "react";
 import { formatDate, formatMinorAmount } from "@/lib/i18n/format";
 import type { Locale } from "@/lib/constants";
-import type { LedgerRow, LedgerView, LedgerSemantics } from "@/lib/ledger";
+import type { LedgerRow, LedgerView } from "@/lib/ledger";
 import { LEDGER_SEMANTICS } from "@/lib/ledger";
+import { getTranslator } from "@/lib/i18n/dictionaries";
+import { PrintButton } from "../../_components/print-button";
 
 /**
  * Reusable ledger table used by buyers, suppliers, and the teller.
@@ -17,13 +20,25 @@ export function LedgerTable({
   kind,
   locale,
   emptyMessage,
+  printId,
+  printTitle,
+  actionsLabel,
+  renderRowActions,
 }: {
   view: LedgerView;
   kind: keyof typeof LEDGER_SEMANTICS;
   locale: Locale;
   emptyMessage: string;
+  /** When set, the table is wrapped in a printable section with this id. */
+  printId?: string;
+  printTitle?: string;
+  actionsLabel?: string;
+  /** Optional per-row edit/delete controls (client components). */
+  renderRowActions?: (row: LedgerRow) => ReactNode;
 }) {
-  const semantics: LedgerSemantics = LEDGER_SEMANTICS[kind];
+  const t = getTranslator(locale);
+  const hasActions = Boolean(renderRowActions);
+  const columnCount = hasActions ? 7 : 6;
 
   const openingRows = (["AFN", "USD"] as const)
     .filter((currency) => view.opening[currency] !== 0)
@@ -37,7 +52,7 @@ export function LedgerTable({
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-md border border-zinc-200 px-3 py-2 dark:border-zinc-800">
           <div className="text-xs uppercase tracking-wide text-zinc-500">
-            Opening balance
+            {t("ledger.openingBalance")}
           </div>
           <div className="mt-1 flex flex-col text-sm font-medium" dir="ltr">
             {openingRows.length === 0 ? (
@@ -51,7 +66,7 @@ export function LedgerTable({
         </div>
         <div className="rounded-md border border-zinc-200 px-3 py-2 dark:border-zinc-800">
           <div className="text-xs uppercase tracking-wide text-zinc-500">
-            Total {semantics.debitLabel}
+            {t("ledger.total")} {t(`ledger.labels.${kind}.debit`)}
           </div>
           <div className="mt-1 flex flex-col text-sm font-medium" dir="ltr">
             <span>{formatMinorAmount(view.totalDebits.AFN, "AFN")}</span>
@@ -60,7 +75,7 @@ export function LedgerTable({
         </div>
         <div className="rounded-md border border-zinc-200 px-3 py-2 dark:border-zinc-800">
           <div className="text-xs uppercase tracking-wide text-zinc-500">
-            Total {semantics.creditLabel}
+            {t("ledger.total")} {t(`ledger.labels.${kind}.credit`)}
           </div>
           <div className="mt-1 flex flex-col text-sm font-medium" dir="ltr">
             <span>{formatMinorAmount(view.totalCredits.AFN, "AFN")}</span>
@@ -69,22 +84,41 @@ export function LedgerTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      {printId ? (
+        <div className="flex justify-end">
+          <PrintButton targetId={printId} label={t("common.print")} />
+        </div>
+      ) : null}
+
+      <div
+        id={printId}
+        data-print-root={printId ? "" : undefined}
+        className="overflow-x-auto"
+      >
+        {printTitle ? (
+          <h2 className="mb-3 hidden text-lg font-semibold print:block">{printTitle}</h2>
+        ) : null}
+
         <table className="w-full min-w-[820px] text-start text-sm">
           <thead>
             <tr className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800">
-              <th className="px-4 py-3 text-start font-medium">Date</th>
-              <th className="px-4 py-3 text-start font-medium">Description</th>
-              <th className="px-4 py-3 text-start font-medium">{semantics.debitLabel}</th>
-              <th className="px-4 py-3 text-start font-medium">{semantics.creditLabel}</th>
-              <th className="px-4 py-3 text-start font-medium">Balance</th>
-              <th className="px-4 py-3 text-start font-medium">Currency</th>
+              <th className="px-4 py-3 text-start font-medium">{t("ledger.date")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("ledger.description")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t(`ledger.labels.${kind}.debit`)}</th>
+              <th className="px-4 py-3 text-start font-medium">{t(`ledger.labels.${kind}.credit`)}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("ledger.balance")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("ledger.currency")}</th>
+              {hasActions ? (
+                <th className="px-4 py-3 text-start font-medium print:hidden">
+                  {actionsLabel ?? t("common.actions")}
+                </th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
             {!hasRows && openingRows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-zinc-500">
+                <td colSpan={columnCount} className="px-4 py-6 text-center text-zinc-500">
                   {emptyMessage}
                 </td>
               </tr>
@@ -93,7 +127,7 @@ export function LedgerTable({
             {openingRows.length > 0 ? (
               <tr className="bg-zinc-50 dark:bg-zinc-800/40">
                 <td className="px-4 py-2 text-xs text-zinc-500" colSpan={4}>
-                  Opening balance (before first transaction in view)
+                  {t("ledger.openingBalanceNote")}
                 </td>
                 <td className="px-4 py-2 font-medium" dir="ltr">
                   {openingRows.map((row) => (
@@ -103,6 +137,7 @@ export function LedgerTable({
                   ))}
                 </td>
                 <td className="px-4 py-2 text-xs text-zinc-500">AFN / USD</td>
+                {hasActions ? <td className="print:hidden" /> : null}
               </tr>
             ) : null}
 
@@ -114,9 +149,19 @@ export function LedgerTable({
                 <td className="px-4 py-3 whitespace-nowrap">{formatDate(row.date, locale)}</td>
                 <td className="px-4 py-3">
                   {row.description}
+                  {row.billNo ? (
+                    <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] uppercase tracking-wide text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+                      {t("ledger.bill")} {row.billNo}
+                    </span>
+                  ) : null}
+                  {row.receivedBy ? (
+                    <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500 dark:bg-zinc-800">
+                      {t("ledger.receivedBy")}: {row.receivedBy}
+                    </span>
+                  ) : null}
                   {row.source && row.source !== "manual" ? (
                     <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500 dark:bg-zinc-800">
-                      {row.source}
+                      {t(`ledger.sources.${row.source}`)}
                     </span>
                   ) : null}
                 </td>
@@ -130,6 +175,9 @@ export function LedgerTable({
                   {formatMinorAmount(row.balanceMinor, row.currency)}
                 </td>
                 <td className="px-4 py-3 text-zinc-500">{row.currency}</td>
+                {hasActions ? (
+                  <td className="px-4 py-3 print:hidden">{renderRowActions?.(row)}</td>
+                ) : null}
               </tr>
             ))}
           </tbody>
@@ -137,7 +185,7 @@ export function LedgerTable({
             <tfoot>
               <tr className="border-t-2 border-zinc-300 font-semibold dark:border-zinc-700">
                 <td className="px-4 py-3" colSpan={2}>
-                  Totals in view
+                  {t("ledger.totalsInView")}
                 </td>
                 <td className="px-4 py-3" dir="ltr">
                   <span className="block">{formatMinorAmount(view.totalDebits.AFN, "AFN")}</span>
@@ -152,6 +200,7 @@ export function LedgerTable({
                   <span className="block">{formatMinorAmount(view.closing.USD, "USD")}</span>
                 </td>
                 <td className="px-4 py-3 text-zinc-500">AFN / USD</td>
+                {hasActions ? <td className="print:hidden" /> : null}
               </tr>
             </tfoot>
           ) : null}

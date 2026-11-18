@@ -127,7 +127,7 @@ export default async function PartnersPage({
                       {(totals?.display.USD ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} USD
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={partner.status} />
+                      <StatusBadge status={partner.status} locale={locale} />
                     </td>
                   </tr>
                 );

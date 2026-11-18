@@ -1,11 +1,16 @@
 import {
   BUYER_STATUSES,
+  CLOTH_UNITS,
   CURRENCIES,
+  DEFAULT_CLOTH_UNIT,
   DEFAULT_LOCALE,
+  EMPLOYEE_STATUSES,
+  EXPENSE_CATEGORIES,
   INVENTORY_SOURCE_TYPES,
   LEDGER_ENTRY_TYPES,
   LOCALES,
   PARTNER_STATUSES,
+  PERMISSIONS,
   REMINDER_SCHEDULES,
   RESERVED_SLUGS,
   SHOP_STATUSES,
@@ -15,11 +20,13 @@ import {
   SUPPLIER_STATUSES,
   TELLER_TRANSACTION_TYPES,
   USER_ROLES,
+  type ClothUnit,
   type Currency,
   type Locale,
+  type Permission,
 } from "./constants";
 import { isCurrency as isCurrencyValue, toMinorUnits } from "./money";
-import { toMillimeters } from "./measure";
+import { toMillimetersForUnit } from "./measure";
 
 export type ValidationResult<T> =
   | { success: true; data: T }
@@ -314,6 +321,7 @@ export function validateInvestmentInput(raw: Record<string, unknown>): Validatio
 // ---------------------------------------------------------------------------
 
 export interface BuyerInput {
+  code: string;
   name: string;
   shopName: string;
   phone: string;
@@ -324,6 +332,11 @@ export interface BuyerInput {
 
 export function validateBuyerInput(raw: Record<string, unknown>): ValidationResult<BuyerInput> {
   const errors: Record<string, string> = {};
+
+  const code = String(raw.code ?? "").trim().toUpperCase();
+  if (!/^[A-Z0-9][A-Z0-9_/-]{1,39}$/.test(code)) {
+    errors.code = "Code must be 2–40 letters, numbers, hyphens, slashes or underscores.";
+  }
 
   const name = String(raw.name ?? "").trim();
   if (name.length < 2 || name.length > 120) {
@@ -361,7 +374,7 @@ export function validateBuyerInput(raw: Record<string, unknown>): ValidationResu
 
   return {
     success: true,
-    data: { name, shopName, phone, address, notes, status: status as BuyerInput["status"] },
+    data: { code, name, shopName, phone, address, notes, status: status as BuyerInput["status"] },
   };
 }
 
@@ -372,6 +385,10 @@ export interface LedgerEntryInput {
   currency: Currency;
   occurredAt: Date;
   note: string;
+  /** Optional for programmatic callers; defaults to "". */
+  billNo?: string;
+  /** Who received a payment — only allowed for `payment` entries. */
+  receivedBy?: string;
 }
 
 export function validateLedgerEntryInput(raw: Record<string, unknown>): ValidationResult<LedgerEntryInput> {
@@ -418,6 +435,18 @@ export function validateLedgerEntryInput(raw: Record<string, unknown>): Validati
     errors.note = "Note must be at most 2000 characters.";
   }
 
+  const billNo = String(raw.billNo ?? "").trim();
+  if (billNo.length > 40) {
+    errors.billNo = "Bill number must be at most 40 characters.";
+  }
+
+  // Received-by only makes sense for payments, never for goods given.
+  const receivedByRaw = String(raw.receivedBy ?? "").trim();
+  const receivedBy = type === "payment" ? receivedByRaw : "";
+  if (receivedBy.length > 120) {
+    errors.receivedBy = "Received-by must be at most 120 characters.";
+  }
+
   if (Object.keys(errors).length > 0 || !occurredAt || amountMinor === null) {
     return { success: false, errors };
   }
@@ -431,6 +460,8 @@ export function validateLedgerEntryInput(raw: Record<string, unknown>): Validati
       currency,
       occurredAt,
       note,
+      billNo,
+      receivedBy,
     },
   };
 }
@@ -608,6 +639,7 @@ export function validateTellerTransactionInput(
 // ---------------------------------------------------------------------------
 
 export interface SupplierInput {
+  code: string;
   name: string;
   companyName: string;
   phone: string;
@@ -618,6 +650,11 @@ export interface SupplierInput {
 
 export function validateSupplierInput(raw: Record<string, unknown>): ValidationResult<SupplierInput> {
   const errors: Record<string, string> = {};
+
+  const code = String(raw.code ?? "").trim().toUpperCase();
+  if (!/^[A-Z0-9][A-Z0-9_/-]{1,39}$/.test(code)) {
+    errors.code = "Code must be 2–40 letters, numbers, hyphens, slashes or underscores.";
+  }
 
   const name = String(raw.name ?? "").trim();
   if (name.length < 2 || name.length > 120) {
@@ -656,6 +693,7 @@ export function validateSupplierInput(raw: Record<string, unknown>): ValidationR
   return {
     success: true,
     data: {
+      code,
       name,
       companyName,
       phone,
@@ -673,6 +711,10 @@ export interface SupplierLedgerEntryInput {
   currency: Currency;
   occurredAt: Date;
   note: string;
+  /** Optional for programmatic callers; defaults to "". */
+  billNo?: string;
+  /** Who received a payment — only allowed for `payment` entries. */
+  receivedBy?: string;
 }
 
 export function validateSupplierLedgerEntryInput(
@@ -721,6 +763,17 @@ export function validateSupplierLedgerEntryInput(
     errors.note = "Note must be at most 2000 characters.";
   }
 
+  const billNo = String(raw.billNo ?? "").trim();
+  if (billNo.length > 40) {
+    errors.billNo = "Bill number must be at most 40 characters.";
+  }
+
+  const receivedByRaw = String(raw.receivedBy ?? "").trim();
+  const receivedBy = type === "payment" ? receivedByRaw : "";
+  if (receivedBy.length > 120) {
+    errors.receivedBy = "Received-by must be at most 120 characters.";
+  }
+
   if (Object.keys(errors).length > 0 || !occurredAt || amountMinor === null) {
     return { success: false, errors };
   }
@@ -734,6 +787,8 @@ export function validateSupplierLedgerEntryInput(
       currency,
       occurredAt,
       note,
+      billNo,
+      receivedBy,
     },
   };
 }
@@ -744,8 +799,12 @@ export function validateSupplierLedgerEntryInput(
 
 export interface ClothInput {
   name: string;
+  /** Optional for programmatic callers; defaults to "" / yard. */
+  code?: string;
+  unit?: ClothUnit;
   category: string;
   description: string;
+  /** Price per the selected unit (yards for the UI). */
   pricePerMeter: string;
   currency: Currency;
   supplierId: string | null;
@@ -759,6 +818,19 @@ export function validateClothInput(raw: Record<string, unknown>): ValidationResu
   const name = String(raw.name ?? "").trim();
   if (name.length < 2 || name.length > 120) {
     errors.name = "Cloth name must be 2–120 characters.";
+  }
+
+  const code = String(raw.code ?? "").trim();
+  if (code.length > 60) {
+    errors.code = "Cloth code must be at most 60 characters.";
+  }
+
+  const unitRaw = String(raw.unit ?? "").trim();
+  const unit = (CLOTH_UNITS as readonly string[]).includes(unitRaw)
+    ? (unitRaw as ClothUnit)
+    : DEFAULT_CLOTH_UNIT;
+  if (unitRaw !== "" && !(CLOTH_UNITS as readonly string[]).includes(unitRaw)) {
+    errors.unit = "Unit must be yard or meter.";
   }
 
   const category = String(raw.category ?? "").trim();
@@ -779,19 +851,19 @@ export function validateClothInput(raw: Record<string, unknown>): ValidationResu
 
   const pricePerMeterMinor = toMinorUnits(pricePerMeterRaw, isCurrencyValue(currency) ? currency : "AFN");
   if (pricePerMeterMinor === null) {
-    errors.pricePerMeter = "Enter a valid price per meter.";
+    errors.pricePerMeter = "Enter a valid price.";
   } else if (pricePerMeterMinor <= 0) {
-    errors.pricePerMeter = "Price per meter must be greater than zero.";
+    errors.pricePerMeter = "Price must be greater than zero.";
   }
 
   const supplierIdRaw = String(raw.supplierId ?? "").trim();
   const supplierId = /^[a-f\d]{24}$/i.test(supplierIdRaw) ? supplierIdRaw : null;
 
-  // Optional low-stock warning threshold in meters (blank = no warning).
+  // Optional low-stock warning threshold in the cloth's unit (blank = none).
   const lowStockRaw = String(raw.lowStockThresholdMeters ?? "").trim();
-  const lowStockThresholdMm = lowStockRaw === "" ? null : toMillimeters(lowStockRaw);
+  const lowStockThresholdMm = lowStockRaw === "" ? null : toMillimetersForUnit(lowStockRaw, unit);
   if (lowStockThresholdMm !== null && (lowStockThresholdMm < 0 || !/^-?\d+(\.\d{1,3})?$/.test(lowStockRaw.replace(/,/g, "")))) {
-    errors.lowStockThresholdMeters = "Enter a valid meter value or leave it blank.";
+    errors.lowStockThresholdMeters = "Enter a valid quantity or leave it blank.";
   }
 
   const notes = String(raw.notes ?? "").trim();
@@ -807,6 +879,8 @@ export function validateClothInput(raw: Record<string, unknown>): ValidationResu
     success: true,
     data: {
       name,
+      code,
+      unit,
       category,
       description,
       pricePerMeter: pricePerMeterRaw,
@@ -827,13 +901,20 @@ export interface InventoryTransactionInput {
   clothId: string;
   direction: "in" | "out";
   sourceType: (typeof INVENTORY_SOURCE_TYPES)[number];
-  quantityMeters: string;
-  pricePerMeter: string;
+  /** Quantity in the chosen unit (yards by default). */
+  quantity?: string;
+  unit?: ClothUnit;
+  /** Price per the chosen unit. */
+  pricePerUnit?: string;
+  /** Legacy aliases (always meters) retained for programmatic callers. */
+  quantityMeters?: string;
+  pricePerMeter?: string;
   currency: Currency;
   supplierId: string | null;
   buyerId: string | null;
   occurredAt: Date;
   note: string;
+  billNo?: string;
   /** Money side — omitted for adjustments. */
   credit: boolean;
   amountPaid: string;
@@ -860,25 +941,30 @@ export function validateInventoryTransactionInput(
     errors.sourceType = "Source must be purchase, sale or adjustment.";
   }
 
-  const quantityMetersRaw = String(raw.quantityMeters ?? "").trim();
-  const quantityMm = toMillimeters(quantityMetersRaw);
+  const unitRaw = String(raw.unit ?? "").trim();
+  const unit = (CLOTH_UNITS as readonly string[]).includes(unitRaw)
+    ? (unitRaw as ClothUnit)
+    : DEFAULT_CLOTH_UNIT;
+
+  const quantityRaw = String(raw.quantity ?? raw.quantityMeters ?? "").trim();
+  const quantityMm = toMillimetersForUnit(quantityRaw, unit);
   if (quantityMm === null) {
-    errors.quantityMeters = "Enter a valid quantity in meters.";
+    errors.quantity = "Enter a valid quantity.";
   } else if (quantityMm <= 0) {
-    errors.quantityMeters = "Quantity must be greater than zero.";
+    errors.quantity = "Quantity must be greater than zero.";
   }
 
-  const pricePerMeterRaw = String(raw.pricePerMeter ?? "").trim();
+  const pricePerUnitRaw = String(raw.pricePerUnit ?? raw.pricePerMeter ?? "").trim();
   const currency = String(raw.currency ?? "").trim() as Currency;
   if (!(CURRENCIES as readonly string[]).includes(currency)) {
     errors.currency = "Currency must be AFN or USD.";
   }
 
-  const pricePerMeterMinor = toMinorUnits(pricePerMeterRaw, isCurrencyValue(currency) ? currency : "AFN");
-  if (pricePerMeterMinor === null) {
-    errors.pricePerMeter = "Enter a valid price per meter.";
-  } else if (pricePerMeterMinor <= 0) {
-    errors.pricePerMeter = "Price per meter must be greater than zero.";
+  const pricePerUnitMinor = toMinorUnits(pricePerUnitRaw, isCurrencyValue(currency) ? currency : "AFN");
+  if (pricePerUnitMinor === null) {
+    errors.pricePerUnit = "Enter a valid price.";
+  } else if (pricePerUnitMinor <= 0) {
+    errors.pricePerUnit = "Price must be greater than zero.";
   }
 
   const supplierIdRaw = String(raw.supplierId ?? "").trim();
@@ -911,6 +997,11 @@ export function validateInventoryTransactionInput(
     errors.note = "Note must be at most 2000 characters.";
   }
 
+  const billNo = String(raw.billNo ?? "").trim();
+  if (billNo.length > 40) {
+    errors.billNo = "Bill number must be at most 40 characters.";
+  }
+
   const creditRaw = String(raw.credit ?? "off").trim().toLowerCase();
   const credit = creditRaw === "on" || creditRaw === "true" || creditRaw === "1";
 
@@ -926,7 +1017,7 @@ export function validateInventoryTransactionInput(
     !direction ||
     quantityMm === null ||
     quantityMm <= 0 ||
-    pricePerMeterMinor === null ||
+    pricePerUnitMinor === null ||
     amountPaidMinor === null ||
     !occurredAt
   ) {
@@ -939,15 +1030,362 @@ export function validateInventoryTransactionInput(
       clothId,
       direction,
       sourceType: sourceType as InventoryTransactionInput["sourceType"],
-      quantityMeters: quantityMetersRaw,
-      pricePerMeter: pricePerMeterRaw,
+      quantity: quantityRaw,
+      unit,
+      pricePerUnit: pricePerUnitRaw,
       currency,
       supplierId,
       buyerId,
       occurredAt,
       note,
+      billNo,
       credit,
       amountPaid: amountPaidRaw,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Expenses (rent, warehouse, taxes, kitchen, transfers, electricity…)
+// ---------------------------------------------------------------------------
+
+export interface ExpenseInput {
+  category: (typeof EXPENSE_CATEGORIES)[number];
+  name: string;
+  /** Set for salary expenses. */
+  employeeId: string;
+  amount: string;
+  currency: Currency;
+  occurredAt: Date;
+  note: string;
+}
+
+export function validateExpenseInput(raw: Record<string, unknown>): ValidationResult<ExpenseInput> {
+  const errors: Record<string, string> = {};
+
+  const category = String(raw.category ?? "").trim();
+  if (!(EXPENSE_CATEGORIES as readonly string[]).includes(category)) {
+    errors.category = "Choose a valid expense category.";
+  }
+
+  const name = String(raw.name ?? "").trim();
+  if (name.length > 120) {
+    errors.name = "Expense name must be at most 120 characters.";
+  }
+
+  const employeeIdRaw = String(raw.employeeId ?? "").trim();
+  const employeeId = /^[a-f\d]{24}$/i.test(employeeIdRaw) ? employeeIdRaw : "";
+  if (category === "salary" && !employeeId) {
+    errors.employeeId = "Select an employee.";
+  } else if (employeeIdRaw !== "" && !employeeId) {
+    errors.employeeId = "Select a valid employee.";
+  }
+
+  const amountRaw = String(raw.amount ?? "").trim();
+  const currency = String(raw.currency ?? "").trim() as Currency;
+  if (!(CURRENCIES as readonly string[]).includes(currency)) {
+    errors.currency = "Currency must be AFN or USD.";
+  }
+
+  const amountMinor = toMinorUnits(amountRaw, isCurrencyValue(currency) ? currency : "AFN");
+  if (amountMinor === null) {
+    errors.amount = "Enter a valid positive amount.";
+  } else if (amountMinor <= 0) {
+    errors.amount = "Amount must be greater than zero.";
+  }
+
+  const occurredAtRaw = String(raw.occurredAt ?? "").trim();
+  let occurredAt: Date | null = null;
+  if (occurredAtRaw === "") {
+    errors.occurredAt = "Date is required.";
+  } else {
+    const parsed = new Date(occurredAtRaw.length === 10 ? `${occurredAtRaw}T00:00:00` : occurredAtRaw);
+    if (Number.isNaN(parsed.getTime())) {
+      errors.occurredAt = "Enter a valid date.";
+    } else {
+      occurredAt = parsed;
+    }
+  }
+
+  const note = String(raw.note ?? "").trim();
+  if (note.length > 2000) {
+    errors.note = "Note must be at most 2000 characters.";
+  }
+
+  if (Object.keys(errors).length > 0 || !occurredAt || amountMinor === null) {
+    return { success: false, errors };
+  }
+
+  return {
+    success: true,
+    data: {
+      category: category as ExpenseInput["category"],
+      name,
+      employeeId,
+      amount: amountRaw,
+      currency,
+      occurredAt,
+      note,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Employees (their names are offered as "received by" on payments)
+// ---------------------------------------------------------------------------
+
+export interface EmployeeInput {
+  name: string;
+  phone: string;
+  role: string;
+  salaryAmount: string;
+  salaryCurrency: Currency;
+  notes: string;
+  status: (typeof EMPLOYEE_STATUSES)[number];
+}
+
+export function validateEmployeeInput(raw: Record<string, unknown>): ValidationResult<EmployeeInput> {
+  const errors: Record<string, string> = {};
+
+  const name = String(raw.name ?? "").trim();
+  if (name.length < 2 || name.length > 120) {
+    errors.name = "Employee name must be 2–120 characters.";
+  }
+
+  const phone = String(raw.phone ?? "").trim();
+  if (phone && phone.length < 7) {
+    errors.phone = "Phone must be at least 7 characters, or left blank.";
+  }
+
+  const role = String(raw.role ?? "").trim();
+  if (role.length > 120) {
+    errors.role = "Role must be at most 120 characters.";
+  }
+
+  const salaryCurrency = (String(raw.salaryCurrency ?? "AFN").trim() || "AFN") as Currency;
+  if (!(CURRENCIES as readonly string[]).includes(salaryCurrency)) {
+    errors.salaryCurrency = "Salary currency must be AFN or USD.";
+  }
+
+  const salaryAmount = String(raw.salaryAmount ?? "").trim();
+  if (salaryAmount !== "") {
+    const salaryMinor = toMinorUnits(
+      salaryAmount,
+      isCurrencyValue(salaryCurrency) ? salaryCurrency : "AFN",
+    );
+    if (salaryMinor === null || salaryMinor < 0) {
+      errors.salaryAmount = "Enter a valid salary.";
+    }
+  }
+
+  const notes = String(raw.notes ?? "").trim();
+  if (notes.length > 2000) {
+    errors.notes = "Notes must be at most 2000 characters.";
+  }
+
+  const status = String(raw.status ?? "active").trim();
+  if (!(EMPLOYEE_STATUSES as readonly string[]).includes(status)) {
+    errors.status = "Status must be active or inactive.";
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return { success: false, errors };
+  }
+
+  return {
+    success: true,
+    data: {
+      name,
+      phone,
+      role,
+      salaryAmount,
+      salaryCurrency: isCurrencyValue(salaryCurrency) ? salaryCurrency : "AFN",
+      notes,
+      status: status as EmployeeInput["status"],
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Audit reasons — updates and deletions of ledger entries require one
+// ---------------------------------------------------------------------------
+
+export function validateAuditReason(raw: unknown): string | null {
+  const reason = String(raw ?? "").trim();
+  if (reason.length < 3 || reason.length > 500) return null;
+  return reason;
+}
+
+export interface LedgerEntryUpdateInput {
+  type: LedgerEntryInput["type"];
+  amount: string;
+  currency: Currency;
+  occurredAt: Date;
+  note: string;
+  billNo: string;
+  receivedBy: string;
+  reason: string;
+}
+
+export function validateLedgerEntryUpdateInput(
+  raw: Record<string, unknown>,
+): ValidationResult<LedgerEntryUpdateInput> {
+  const reason = validateAuditReason(raw.reason) ?? "";
+  const parsed = validateLedgerEntryInput({
+    ...raw,
+    buyerId: "000000000000000000000000",
+  });
+
+  const errors: Record<string, string> = parsed.success ? {} : { ...parsed.errors };
+  if (!reason) errors.reason = "A reason of 3–500 characters is required.";
+
+  if (Object.keys(errors).length > 0 || !parsed.success) {
+    return { success: false, errors };
+  }
+
+  return {
+    success: true,
+    data: {
+      type: parsed.data.type,
+      amount: parsed.data.amount,
+      currency: parsed.data.currency,
+      occurredAt: parsed.data.occurredAt,
+      note: parsed.data.note ?? "",
+      billNo: parsed.data.billNo ?? "",
+      receivedBy: parsed.data.receivedBy ?? "",
+      reason,
+    },
+  };
+}
+
+export interface SupplierLedgerEntryUpdateInput {
+  type: SupplierLedgerEntryInput["type"];
+  amount: string;
+  currency: Currency;
+  occurredAt: Date;
+  note: string;
+  billNo: string;
+  receivedBy: string;
+  reason: string;
+}
+
+export function validateSupplierLedgerEntryUpdateInput(
+  raw: Record<string, unknown>,
+): ValidationResult<SupplierLedgerEntryUpdateInput> {
+  const reason = validateAuditReason(raw.reason) ?? "";
+  const parsed = validateSupplierLedgerEntryInput({
+    ...raw,
+    supplierId: "000000000000000000000000",
+  });
+
+  const errors: Record<string, string> = parsed.success ? {} : { ...parsed.errors };
+  if (!reason) errors.reason = "A reason of 3–500 characters is required.";
+
+  if (Object.keys(errors).length > 0 || !parsed.success) {
+    return { success: false, errors };
+  }
+
+  return {
+    success: true,
+    data: {
+      type: parsed.data.type,
+      amount: parsed.data.amount,
+      currency: parsed.data.currency,
+      occurredAt: parsed.data.occurredAt,
+      note: parsed.data.note ?? "",
+      billNo: parsed.data.billNo ?? "",
+      receivedBy: parsed.data.receivedBy ?? "",
+      reason,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Shop users, roles and permissions
+// ---------------------------------------------------------------------------
+
+export interface ShopUserInput {
+  name: string;
+  email: string;
+  roleKey: string;
+  password?: string;
+  isActive: boolean;
+}
+
+export function validateShopUserInput(
+  raw: Record<string, unknown>,
+  opts: { requirePassword: boolean },
+): ValidationResult<ShopUserInput> {
+  const errors: Record<string, string> = {};
+
+  const name = String(raw.name ?? "").trim();
+  if (name.length < 2 || name.length > 120) {
+    errors.name = "Name must be 2–120 characters.";
+  }
+
+  const email = String(raw.email ?? "").trim().toLowerCase();
+  if (!isValidEmail(email)) {
+    errors.email = "A valid email is required.";
+  }
+
+  const roleKey = String(raw.roleKey ?? "").trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(roleKey)) {
+    errors.roleKey = "Choose a valid role.";
+  }
+
+  const password = String(raw.password ?? "");
+  if (opts.requirePassword && password.length < 8) {
+    errors.password = "Password must be at least 8 characters.";
+  } else if (!opts.requirePassword && password.length > 0 && password.length < 8) {
+    errors.password = "Password must be at least 8 characters.";
+  }
+
+  const activeRaw = String(raw.isActive ?? "").trim().toLowerCase();
+  const isActive = activeRaw === "on" || activeRaw === "true" || activeRaw === "1";
+
+  if (Object.keys(errors).length > 0) {
+    return { success: false, errors };
+  }
+
+  return {
+    success: true,
+    data: {
+      name,
+      email,
+      roleKey,
+      password: password || undefined,
+      isActive,
+    },
+  };
+}
+
+export interface RolePermissionInput {
+  name: string;
+  permissions: Permission[];
+}
+
+export function validateRoleInput(raw: Record<string, unknown>): ValidationResult<RolePermissionInput> {
+  const errors: Record<string, string> = {};
+
+  const name = String(raw.name ?? "").trim();
+  if (name.length < 2 || name.length > 120) {
+    errors.name = "Role name must be 2–120 characters.";
+  }
+
+  const rawPermissions: unknown = raw.permissions;
+  const list = Array.isArray(rawPermissions)
+    ? rawPermissions
+    : typeof rawPermissions === "string"
+      ? [rawPermissions]
+      : [];
+
+  const permissions = Array.from(
+    new Set(list.map((value) => String(value)).filter((value) => (PERMISSIONS as readonly string[]).includes(value))),
+  ) as Permission[];
+
+  if (Object.keys(errors).length > 0) {
+    return { success: false, errors };
+  }
+
+  return { success: true, data: { name, permissions } };
 }

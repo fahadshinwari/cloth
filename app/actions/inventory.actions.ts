@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireMerchantAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import {
   InventoryServiceError,
   createCloth,
@@ -26,7 +26,7 @@ export async function createClothAction(
 ): Promise<FormActionState> {
   let ctx;
   try {
-    ctx = await requireMerchantAdmin();
+    ctx = await requirePermission("inventory.manage");
   } catch {
     return { error: "Unauthorized" };
   }
@@ -56,7 +56,7 @@ export async function updateClothAction(
 ): Promise<FormActionState> {
   let ctx;
   try {
-    ctx = await requireMerchantAdmin();
+    ctx = await requirePermission("inventory.manage");
   } catch {
     return { error: "Unauthorized" };
   }
@@ -90,7 +90,7 @@ export async function recordInventoryTransactionAction(
 ): Promise<FormActionState> {
   let ctx;
   try {
-    ctx = await requireMerchantAdmin();
+    ctx = await requirePermission("inventory.manage");
   } catch {
     return { error: "Unauthorized" };
   }

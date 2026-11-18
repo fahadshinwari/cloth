@@ -65,7 +65,7 @@ async function main() {
     getPeriodReport, getTellerReport,
   } = await import("../lib/reports");
   const { parseReportParams } = await import("../lib/report-params");
-  const { renderReportCsv, renderReportPdf, buildReportTable } = await import("../lib/report-export");
+  const { renderReportCsv, renderReportXlsx, buildReportTable } = await import("../lib/report-export");
   const { getSuppliersWithLedgerTotals } = await import("../lib/services/supplier.service");
 
   await connectToDatabase();
@@ -111,8 +111,7 @@ async function main() {
     // ------------------------------------------------------------------
     // B. Supplier → receive 3,000 m → inventory + supplier balance
     // ------------------------------------------------------------------
-    const supplier = await createSupplier(tenantA, userA, {
-      name: "ABC Importer", companyName: "ABC", phone: "", address: "", notes: "", status: "active",
+    const supplier = await createSupplier(tenantA, userA, { code: "C1", name: "ABC Importer", companyName: "ABC", phone: "", address: "", notes: "", status: "active",
     });
     const cloth = await createCloth(tenantA, userA, {
       name: "Linen", category: "Linen", description: "", pricePerMeter: "100",
@@ -143,8 +142,7 @@ async function main() {
     // ------------------------------------------------------------------
     // D. Give 1,000 m to buyer on credit → inventory down, buyer up
     // ------------------------------------------------------------------
-    const buyer = await createBuyer(tenantA, userA, {
-      name: "Ahmad", shopName: "Ahmad Shop", phone: "", address: "", notes: "", status: "active",
+    const buyer = await createBuyer(tenantA, userA, { code: "C2", name: "Ahmad", shopName: "Ahmad Shop", phone: "", address: "", notes: "", status: "active",
     });
     await recordInventoryTransaction(tenantA, userA, {
       clothId: String(cloth._id), direction: "out", sourceType: "sale",
@@ -233,13 +231,14 @@ async function main() {
     );
 
     // ------------------------------------------------------------------
-    // Exports: CSV + PDF built server-side, tenant-scoped
+    // Exports: CSV + XLSX built server-side, tenant-scoped
     // ------------------------------------------------------------------
     const table = await buildReportTable(tenantA, "buyers", {}, "day");
     const csv = renderReportCsv(table);
     check("Export: CSV includes buyer + outstanding", csv.includes("Ahmad") && csv.includes("AFN 75,000"));
-    const pdf = renderReportPdf(table);
-    check("Export: PDF starts with %PDF and ends with %%EOF", pdf.subarray(0, 5).toString() === "%PDF-" && pdf.subarray(pdf.length - 5).toString() === "%%EOF");
+    const workbook = renderReportXlsx(table);
+    // XLSX is a ZIP archive: starts with "PK" (0x50 0x4B).
+    check("Export: XLSX is a valid ZIP container", workbook.subarray(0, 2).toString() === "PK" && workbook.length > 1000);
 
     // Param validation rejects bad ids and unknown types
     const badParams = parseReportParams({ type: "buyers", format: "csv", buyerId: "../etc/passwd" });

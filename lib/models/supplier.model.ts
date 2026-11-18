@@ -12,6 +12,8 @@ const supplierSchema = new Schema(
       required: true,
       index: true,
     },
+    /** Unique, searchable business code (e.g. "SP-1042"). */
+    code: { type: String, required: true, trim: true, uppercase: true, maxlength: 40 },
     name: { type: String, required: true, trim: true, maxlength: 120 },
     companyName: { type: String, trim: true, maxlength: 120, default: "" },
     phone: { type: String, trim: true, maxlength: 40, default: "" },
@@ -36,6 +38,19 @@ const supplierSchema = new Schema(
 
 supplierSchema.index({ tenantId: 1, name: 1 });
 supplierSchema.index({ tenantId: 1, createdAt: -1 });
+// Codes are unique per shop. Partial so legacy rows without a code are ignored.
+supplierSchema.index(
+  { tenantId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { code: { $type: "string", $gt: "" } } },
+);
+
+/**
+ * Dev-only schema refresh: hot reload can keep an old model that silently
+ * drops newly added fields such as `code`.
+ */
+if (process.env.NODE_ENV !== "production") {
+  delete mongoose.models.Supplier;
+}
 
 export type Supplier = InferSchemaType<typeof supplierSchema>;
 

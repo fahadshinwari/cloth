@@ -16,6 +16,11 @@ const userSchema = new Schema(
     passwordHash: { type: String, required: true, select: false },
     role: { type: String, enum: USER_ROLES, required: true },
     /**
+     * Shop role key (see RoleModel). Legacy shop admins without this field
+     * are treated as "owner" so they keep full access.
+     */
+    roleKey: { type: String, trim: true, lowercase: true, default: "owner" },
+    /**
      * Tenant reference — only set for `merchant_admin` users.
      * The tenant of a request is ALWAYS derived from the session token,
      * never from any client-supplied value.
@@ -26,6 +31,7 @@ const userSchema = new Schema(
       default: null,
     },
     isActive: { type: Boolean, default: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
   },
   {
     timestamps: true,
@@ -34,6 +40,11 @@ const userSchema = new Schema(
 );
 
 userSchema.index({ role: 1, tenantId: 1 });
+
+/** Dev-only schema refresh — hot reload can drop newly added fields. */
+if (process.env.NODE_ENV !== "production") {
+  delete mongoose.models.User;
+}
 
 export type User = InferSchemaType<typeof userSchema>;
 

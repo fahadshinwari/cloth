@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { recordInventoryTransactionAction } from "@/app/actions/inventory.actions";
 import type { FormActionState } from "@/app/actions/partner.actions";
 import { Field, SelectInput, TextInput } from "../../_components/ui";
@@ -12,6 +12,9 @@ function todayISO(): string {
   return new Date(now.getTime() - offset).toISOString().slice(0, 10);
 }
 
+/** 1 yard = 0.9144 meters. */
+const YARD_IN_METERS = 0.9144;
+
 export interface InventoryTransactionFormProps {
   /** Fixed cloth context, e.g. from the cloth detail page. */
   clothId?: string;
@@ -19,7 +22,7 @@ export interface InventoryTransactionFormProps {
   fixedSupplierId?: string;
   /** Fixed buyer context, e.g. from the buyer detail page. */
   fixedBuyerId?: string;
-  cloths?: Array<{ id: string; name: string; currency?: string; pricePerMeter?: string }>;
+  cloths?: Array<{ id: string; name: string; currency?: string; pricePerMeter?: string; unit?: string }>;
   suppliers?: Array<{ id: string; name: string; companyName?: string }>;
   buyers?: Array<{ id: string; name: string; shopName?: string }>;
   /** Preselect the source type (purchase/sale/adjustment). */
@@ -33,8 +36,9 @@ export interface InventoryTransactionFormProps {
  * - sale     → inventory OUT + buyer outstanding (credit) and/or paid amount
  * - adjustment → stock correction only, no money side
  *
- * Stock can ONLY change through this transaction — there is no direct
- * quantity edit anywhere in the UI or the service layer.
+ * Buying and selling default to YARDS, with meters also available. Stock can
+ * ONLY change through this transaction — there is no direct quantity edit
+ * anywhere in the UI or the service layer.
  */
 export function InventoryTransactionForm({
   clothId,
@@ -49,6 +53,33 @@ export function InventoryTransactionForm({
   const { t } = useI18n();
   const [state, formAction, pending] = useActionState(recordInventoryTransactionAction, {} as FormActionState);
   const fieldErrors = state.fieldErrors ?? {};
+
+  const cloth = cloths.find((c) => c.id === clothId);
+  const initialUnit: "yard" | "meter" = cloth?.unit === "meter" ? "meter" : "yard";
+  const [unit, setUnit] = useState<"yard" | "meter">(initialUnit);
+  // Prices are entered per the selected unit; the stored price is per meter.
+  const [price, setPrice] = useState(() => {
+    const base = Number(cloth?.pricePerMeter ?? "");
+    if (!Number.isFinite(base)) return "";
+    const perUnit = initialUnit === "yard" ? base * YARD_IN_METERS : base;
+    return String(Math.round(perUnit * 100) / 100);
+  });
+
+  const changeUnit = (next: "yard" | "meter") => {
+    const numeric = Number(price);
+    if (Number.isFinite(numeric) && numeric > 0) {
+      const converted =
+        unit === "yard" && next === "meter"
+          ? numeric / YARD_IN_METERS
+          : unit === "meter" && next === "yard"
+            ? numeric * YARD_IN_METERS
+            : numeric;
+      setPrice(String(Math.round(converted * 100) / 100));
+    }
+    setUnit(next);
+  };
+
+  const unitLabel = t(unit === "yard" ? "units.yard" : "units.meter");
 
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
@@ -72,18 +103,29 @@ export function InventoryTransactionForm({
       ) : (
         <Field label={t("forms.common.cloth")} error={fieldErrors.clothId}>
           <SelectInput name="clothId" defaultValue={cloths[0]?.id} required>
-            {cloths.map((cloth) => (
-              <option key={cloth.id} value={cloth.id}>
-                {cloth.name}
+            {cloths.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
               </option>
             ))}
           </SelectInput>
         </Field>
       )}
 
-      <Field label={t("forms.inventory.quantity")} error={fieldErrors.quantityMeters}>
+      <Field label={t("forms.common.unit")} error={fieldErrors.unit} hint={t("forms.common.unitHint")}>
+        <SelectInput
+          name="unit"
+          value={unit}
+          onChange={(event) => changeUnit(event.target.value === "meter" ? "meter" : "yard")}
+        >
+          <option value="yard">{t("units.yard")}</option>
+          <option value="meter">{t("units.meter")}</option>
+        </SelectInput>
+      </Field>
+
+      <Field label={`${t("forms.inventory.quantity")} (${unitLabel})`} error={fieldErrors.quantity}>
         <TextInput
-          name="quantityMeters"
+          name="quantity"
           type="number"
           step="0.001"
           min="0.001"
@@ -93,13 +135,14 @@ export function InventoryTransactionForm({
         />
       </Field>
 
-      <Field label={t("forms.cloth.pricePerMeter")} error={fieldErrors.pricePerMeter}>
+      <Field label={`${t("forms.inventory.pricePerUnit")} (${unitLabel})`} error={fieldErrors.pricePerUnit}>
         <TextInput
-          name="pricePerMeter"
+          name="pricePerUnit"
           type="number"
           step="0.01"
           min="0.01"
-          defaultValue={cloths.find((c) => c.id === clothId)?.pricePerMeter}
+          value={price}
+          onChange={(event) => setPrice(event.target.value)}
           required
           dir="ltr"
           inputMode="decimal"
@@ -107,7 +150,7 @@ export function InventoryTransactionForm({
       </Field>
 
       <Field label={t("forms.common.currency")} error={fieldErrors.currency}>
-        <SelectInput name="currency" defaultValue={cloths.find((c) => c.id === clothId)?.currency ?? "AFN"}>
+        <SelectInput name="currency" defaultValue={cloth?.currency ?? "AFN"}>
           <option value="AFN">AFN</option>
           <option value="USD">USD</option>
         </SelectInput>
@@ -144,6 +187,10 @@ export function InventoryTransactionForm({
           </SelectInput>
         </Field>
       )}
+
+      <Field label={t("forms.common.billNo")} error={fieldErrors.billNo} hint={t("forms.common.billNoHint")}>
+        <TextInput name="billNo" maxLength={40} dir="ltr" placeholder="202" />
+      </Field>
 
       <Field
         label={t("forms.inventory.credit")}

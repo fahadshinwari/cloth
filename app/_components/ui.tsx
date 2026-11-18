@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import type { Locale } from "@/lib/constants";
+import { getTranslator } from "@/lib/i18n/dictionaries";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
@@ -70,8 +72,15 @@ export function SubmitButton({
   );
 }
 
-export function StatusBadge({ status }: { status: "active" | "inactive" }) {
+export function StatusBadge({
+  status,
+  locale = "en",
+}: {
+  status: "active" | "inactive";
+  locale?: Locale;
+}) {
   const active = status === "active";
+  const t = getTranslator(locale);
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -80,7 +89,7 @@ export function StatusBadge({ status }: { status: "active" | "inactive" }) {
           : "bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
       }`}
     >
-      {status}
+      {active ? t("forms.common.active") : t("forms.common.inactive")}
     </span>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { FormActionState } from "@/app/actions/partner.actions";
 import { Field, SelectInput, TextInput } from "../../_components/ui";
 import { useI18n } from "../../_components/i18n-provider";
+import { ReceiptCard } from "./receipt-card";
 
 function todayISO(): string {
   const now = new Date();
@@ -14,7 +15,10 @@ function todayISO(): string {
 /**
  * Form for recording a money entry with an explicit currency selector so
  * AFN and USD are always distinct records — never combined or converted.
- * Used for both partner investments and buyer ledger entries.
+ * Used for both partner investments and buyer/supplier ledger entries.
+ *
+ * Bill number is always available. "Received by" is shown only for payment
+ * entries — the expense/employee names are never offered for goods given.
  */
 export function TransactionForm({
   action,
@@ -22,6 +26,7 @@ export function TransactionForm({
   hiddenIdValue,
   amountLabel,
   typeSelector,
+  receivedByOptions,
   submitLabel,
 }: {
   action: (state: FormActionState, formData: FormData) => Promise<FormActionState>;
@@ -31,11 +36,15 @@ export function TransactionForm({
   amountLabel: string;
   /** Optional leading select, e.g. goods vs payment. */
   typeSelector?: { name: string; options: Array<{ value: string; label: string }> };
+  /** Expense category / employee names offered when the entry is a payment. */
+  receivedByOptions?: string[];
   submitLabel: string;
 }) {
   const { t } = useI18n();
   const [state, formAction, pending] = useActionState(action, {} as FormActionState);
   const fieldErrors = state.fieldErrors ?? {};
+  const [type, setType] = useState(typeSelector?.options[0]?.value ?? "");
+  const showReceivedBy = Boolean(typeSelector) && type === "payment";
 
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
@@ -43,7 +52,11 @@ export function TransactionForm({
 
       {typeSelector ? (
         <Field label={t("forms.common.type")} error={fieldErrors.type}>
-          <SelectInput name={typeSelector.name} defaultValue={typeSelector.options[0]?.value}>
+          <SelectInput
+            name={typeSelector.name}
+            defaultValue={typeSelector.options[0]?.value}
+            onChange={(event) => setType(event.target.value)}
+          >
             {typeSelector.options.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -72,6 +85,23 @@ export function TransactionForm({
         </SelectInput>
       </Field>
 
+      <Field label={t("forms.common.billNo")} error={fieldErrors.billNo} hint={t("forms.common.billNoHint")}>
+        <TextInput name="billNo" maxLength={40} dir="ltr" placeholder="202" />
+      </Field>
+
+      {showReceivedBy ? (
+        <Field label={t("forms.common.receivedBy")} error={fieldErrors.receivedBy} hint={t("forms.common.receivedByHint")}>
+          <SelectInput name="receivedBy" defaultValue="">
+            <option value="">{t("forms.common.none")}</option>
+            {(receivedByOptions ?? []).map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </SelectInput>
+        </Field>
+      ) : null}
+
       <Field label={t("forms.common.date")} error={fieldErrors.investedAt ?? fieldErrors.occurredAt}>
         <TextInput name={typeSelector ? "occurredAt" : "investedAt"} type="date" defaultValue={todayISO()} dir="ltr" />
       </Field>
@@ -82,6 +112,12 @@ export function TransactionForm({
 
       {state.ok ? <p className="text-sm text-emerald-600 sm:col-span-2">{t("forms.common.recorded")}</p> : null}
       {state.error ? <p className="text-sm text-red-600 sm:col-span-2">{state.error}</p> : null}
+
+      {state.print ? (
+        <div className="sm:col-span-2">
+          <ReceiptCard print={state.print} />
+        </div>
+      ) : null}
 
       <div className="sm:col-span-2">
         <button

@@ -6,3 +6,8 @@ export * from "./buyer.service";
 export * from "./supplier.service";
 export * from "./inventory.service";
 export * from "./teller.service";
+export * from "./expense.service";
+export * from "./employee.service";
+export * from "./bill.service";
+export * from "./role.service";
+export * from "./user.service";

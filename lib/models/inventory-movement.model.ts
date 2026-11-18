@@ -1,5 +1,11 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
-import { CURRENCIES, INVENTORY_DIRECTIONS, INVENTORY_SOURCE_TYPES } from "../constants";
+import {
+  CLOTH_UNITS,
+  CURRENCIES,
+  DEFAULT_CLOTH_UNIT,
+  INVENTORY_DIRECTIONS,
+  INVENTORY_SOURCE_TYPES,
+} from "../constants";
 
 const inventoryMovementSchema = new Schema(
   {
@@ -20,6 +26,10 @@ const inventoryMovementSchema = new Schema(
     direction: { type: String, enum: INVENTORY_DIRECTIONS, required: true },
     /** Quantity in integer millimeters of cloth (see lib/measure.ts). */
     quantityMm: { type: Number, required: true, min: 1 },
+    /** Unit the merchant entered the quantity in (yards by default). */
+    unit: { type: String, enum: CLOTH_UNITS, required: true, default: DEFAULT_CLOTH_UNIT },
+    /** Optional bill/invoice number for searching this transaction later. */
+    billNo: { type: String, trim: true, maxlength: 40, default: "" },
     /** Price per meter in integer minor units, for THIS movement. */
     pricePerMeterMinor: { type: Number, required: true, min: 1 },
     /** Derived: quantityMm / 1000 × pricePerMeterMinor — exact integer math. */
@@ -50,6 +60,7 @@ inventoryMovementSchema.index({ tenantId: 1, clothId: 1, occurredAt: -1 });
 inventoryMovementSchema.index({ tenantId: 1, sourceType: 1 });
 inventoryMovementSchema.index({ tenantId: 1, supplierId: 1 });
 inventoryMovementSchema.index({ tenantId: 1, buyerId: 1 });
+inventoryMovementSchema.index({ tenantId: 1, billNo: 1 });
 
 export type InventoryMovement = InferSchemaType<typeof inventoryMovementSchema>;
 

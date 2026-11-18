@@ -74,10 +74,10 @@ async function main() {
       name: "Linen", category: "Linen", description: "", pricePerMeter: "100",
       currency: "AFN", supplierId: null, lowStockThresholdMeters: "", notes: "",
     });
-    const supplierA = await createSupplier(tenantA, userA, { name: "Supplier A", companyName: "", phone: "", address: "", notes: "", status: "active" });
-    const supplierB = await createSupplier(tenantA, userA, { name: "Supplier B", companyName: "", phone: "", address: "", notes: "", status: "active" });
-    const ahmad = await createBuyer(tenantA, userA, { name: "Ahmad", shopName: "", phone: "", address: "", notes: "", status: "active" });
-    const baseer = await createBuyer(tenantA, userA, { name: "Baseer", shopName: "", phone: "", address: "", notes: "", status: "active" });
+    const supplierA = await createSupplier(tenantA, userA, { code: "C1", name: "Supplier A", companyName: "", phone: "", address: "", notes: "", status: "active" });
+    const supplierB = await createSupplier(tenantA, userA, { code: "C2", name: "Supplier B", companyName: "", phone: "", address: "", notes: "", status: "active" });
+    const ahmad = await createBuyer(tenantA, userA, { code: "C3", name: "Ahmad", shopName: "", phone: "", address: "", notes: "", status: "active" });
+    const baseer = await createBuyer(tenantA, userA, { code: "C4", name: "Baseer", shopName: "", phone: "", address: "", notes: "", status: "active" });
 
     const purchaseOpts = (supplierId: string, meters: string, at: number) => ({
       clothId: String(linen._id), direction: "in" as const, sourceType: "purchase" as const,
@@ -120,7 +120,7 @@ async function main() {
     check("TEST 3c: inventory unchanged by supplier payment", stockAfterPay === 2_800_000, `${stockAfterPay / 1000} m`);
 
     // ================= TEST 4 — Multiple transactions =================
-    const hamid = await createBuyer(tenantA, userA, { name: "Hamid", shopName: "", phone: "", address: "", notes: "", status: "active" });
+    const hamid = await createBuyer(tenantA, userA, { code: "C5", name: "Hamid", shopName: "", phone: "", address: "", notes: "", status: "active" });
     await recordInventoryTransaction(tenantA, userA, saleOpts(String(hamid._id), "300", "100", 2));
     stock = (await getStockByCloth(tenantA)).get(String(linen._id)) ?? 0;
     check("TEST 4a: Linen = 2,500 m after Hamid 300 m", stock === 2_500_000, `${stock / 1000} m`);
@@ -129,7 +129,7 @@ async function main() {
     check("TEST 4b: Linen = 3,000 m after +500 m", stock === 3_000_000, `${stock / 1000} m`);
 
     // ================= TEST 5 — Partial buyer payments =================
-    const t5buyer = await createBuyer(tenantA, userA, { name: "T5 Buyer", shopName: "", phone: "", address: "", notes: "", status: "active" });
+    const t5buyer = await createBuyer(tenantA, userA, { code: "C6", name: "T5 Buyer", shopName: "", phone: "", address: "", notes: "", status: "active" });
     // USD cloth so the $10,000 flow is exact.
     const usdCloth = await createCloth(tenantA, userA, {
       name: "USD Cloth", category: "Cotton", description: "", pricePerMeter: "1000",
@@ -154,7 +154,7 @@ async function main() {
       `g${t5.goods.USD} p${t5.payments.USD} o${t5.outstanding.USD}`);
 
     // ================= TEST 6 — Partial supplier payments =================
-    const t6supplier = await createSupplier(tenantA, userA, { name: "T6 Supplier", companyName: "", phone: "", address: "", notes: "", status: "active" });
+    const t6supplier = await createSupplier(tenantA, userA, { code: "C7", name: "T6 Supplier", companyName: "", phone: "", address: "", notes: "", status: "active" });
     const t6cloth = await createCloth(tenantA, userA, {
       name: "T6 Cloth", category: "Cotton", description: "", pricePerMeter: "1000",
       currency: "USD", supplierId: null, lowStockThresholdMeters: "", notes: "",
@@ -173,7 +173,7 @@ async function main() {
       `r${t6.purchases.USD} p${t6.payments.USD} o${t6.payable.USD}`);
 
     // ================= TEST 7 — AFN/USD separation =================
-    const t7buyer = await createBuyer(tenantA, userA, { name: "T7 Buyer", shopName: "", phone: "", address: "", notes: "", status: "active" });
+    const t7buyer = await createBuyer(tenantA, userA, { code: "C8", name: "T7 Buyer", shopName: "", phone: "", address: "", notes: "", status: "active" });
     await createLedgerEntry(tenantA, userA, { buyerId: String(t7buyer._id), type: "goods", amount: "10000", currency: "USD", occurredAt: day(1), note: "usd goods" });
     await createLedgerEntry(tenantA, userA, { buyerId: String(t7buyer._id), type: "goods", amount: "500000", currency: "AFN", occurredAt: day(1), note: "afn goods" });
     const t7 = await getBuyerLedgerTotals(tenantA, String(t7buyer._id));
@@ -183,7 +183,7 @@ async function main() {
     check("TEST 7a: no merged 510,000 figure", t7.outstanding.USD !== 51_000_000 && t7.outstanding.AFN !== 51_000_000);
 
     // ================= TEST 8 — Tenant isolation (data level) =================
-    await createBuyer(tenantB, userA, { name: "B-only Buyer", shopName: "", phone: "", address: "", notes: "", status: "active" });
+    await createBuyer(tenantB, userA, { code: "C9", name: "B-only Buyer", shopName: "", phone: "", address: "", notes: "", status: "active" });
     const crossBuyer = await BuyerModel.findOne({ _id: ahmad._id, tenantId: tenantB });
     check("TEST 8a: shop B cannot fetch shop A buyer by id", crossBuyer === null);
     const buyersA = await BuyerModel.find({ tenantId: tenantA });
@@ -256,7 +256,7 @@ async function main() {
     let linkedDeleteBlocked = false;
     if (linked) {
       const { deleteLedgerEntry } = await import("../lib/services/buyer.service");
-      try { await deleteLedgerEntry(tenantA, String(linked._id)); } catch { linkedDeleteBlocked = true; }
+      try { await deleteLedgerEntry(tenantA, userA, String(linked._id), "verify test"); } catch { linkedDeleteBlocked = true; }
     }
     check("Guard: movement-linked ledger entry cannot be deleted", linkedDeleteBlocked);
 
@@ -265,8 +265,8 @@ async function main() {
       name: "Cotton", category: "Cotton", description: "", pricePerMeter: "100",
       currency: "AFN", supplierId: null, lowStockThresholdMeters: "", notes: "",
     });
-    const supFlow = await createSupplier(tenantA, userA, { name: "Supplier Flow", companyName: "", phone: "", address: "", notes: "", status: "active" });
-    const ahmadFlow = await createBuyer(tenantA, userA, { name: "Ahmad Flow", shopName: "", phone: "", address: "", notes: "", status: "active" });
+    const supFlow = await createSupplier(tenantA, userA, { code: "C10", name: "Supplier Flow", companyName: "", phone: "", address: "", notes: "", status: "active" });
+    const ahmadFlow = await createBuyer(tenantA, userA, { code: "C11", name: "Ahmad Flow", shopName: "", phone: "", address: "", notes: "", status: "active" });
 
     // 1-2: +3,000 m Cotton @100
     await recordInventoryTransaction(tenantA, userA, {

@@ -47,7 +47,10 @@
     "reports": "راپورونه",
     "reminders": "یادونې",
     "settings": "امستنې",
-    "shops": "پلورنځي"
+    "shops": "پلورنځي",
+    "expenses": "لګښتونه",
+    "employees": "کارکوونکي",
+    "bills": "د بل پلټنه"
   },
   "qa": {
     "addBuyer": "پیرودونکی اضافه کړه",
@@ -61,10 +64,89 @@
   },
   "reports": {
     "title": "راپورونه",
-    "subtitle": "سوداګریز راپورونه فلټر، لیدل او ډاونلوډ کړئ (CSV / PDF).",
+    "subtitle": "سوداګریز راپورونه فلټر، وګوره او ډاونلوډ کړه (اکسل / CSV).",
     "downloadCsv": "CSV ډاونلوډ",
-    "downloadPdf": "PDF ډاونلوډ",
-    "empty": "د ټاکل شویو فلټرونو لپاره معلومات نشته."
+    "empty": "د ټاکل شویو فلټرونو لپاره معلومات نشته.",
+    "downloadXlsx": "اکسل (XLSX) ډاونلوډ",
+    "applyFilters": "فلټرونه تطبیق کړه",
+    "filters": {
+      "from": "له",
+      "to": "تر",
+      "currency": "روپېړه",
+      "transactionType": "د معاملې ډول",
+      "buyer": "پیرودونکی",
+      "supplier": "برابروونکی",
+      "cloth": "ټوکر",
+      "all": "ټول"
+    },
+    "meta": {
+      "from": "له",
+      "to": "تر",
+      "currency": "روپېړه",
+      "transactionType": "د معاملې ډول"
+    },
+    "titles": {
+      "daily": "ورځنې معاملې",
+      "weekly": "اونیزې معاملې",
+      "monthly": "میاشتني معاملې",
+      "buyers": "د پیرودونکو راپور",
+      "suppliers": "د برابروونکو راپور",
+      "inventory": "د زېرمې راپور",
+      "partners": "د شریکانو پانګونې راپور",
+      "teller": "د صندوق راپور"
+    },
+    "sections": {
+      "buyerHistory": "د پیرودونکي د معاملو تاریخچه",
+      "supplierHistory": "د برابروونکي د معاملو تاریخچه"
+    },
+    "columns": {
+      "period": "موده",
+      "currency": "روپېړه",
+      "goodsGiven": "ورکړل شوي مال",
+      "paymentsReceived": "ترلاسه شوې پیسې",
+      "purchases": "اخیستل",
+      "supplierPayments": "برابروونکو ته تادیه",
+      "investments": "پانګونې",
+      "tellerIn": "صندوق ته ننوتل",
+      "tellerOut": "له صندوق وتل",
+      "buyer": "پیرودونکی",
+      "shop": "دکان",
+      "phone": "تلیفون",
+      "clothesReceived": "ترلاسه شوي کالي",
+      "payments": "تادیې",
+      "outstanding": "پاتې",
+      "supplier": "برابروونکی",
+      "company": "شرکت",
+      "clothingReceived": "ترلاسه شوي کالي",
+      "paymentsMade": "شوې تادیې",
+      "outstandingPayable": "پاتې تادیه",
+      "cloth": "ټوکر",
+      "code": "کوډ",
+      "category": "کټګوري",
+      "metersIn": "ننوتلي ګز",
+      "metersOut": "وتلي ګز",
+      "currentMeters": "اوسني ګز",
+      "pricePerMeter": "د هر ګز قیمت",
+      "inventoryValue": "د زېرمې ارزښت",
+      "partner": "شریک",
+      "invested": "پانګونه",
+      "cashIn": "نغدې ننوتلې",
+      "cashOut": "نغدې وتلې",
+      "net": "خالص",
+      "date": "نېټه",
+      "billNo": "د بل شمېره",
+      "description": "تشریح",
+      "type": "ډول",
+      "debit": "بدهکار",
+      "credit": "بستانکار"
+    },
+    "transactionTypes": {
+      "goods": "ورکړل شوي مال",
+      "payment": "تادیه",
+      "purchase": "اخیستل",
+      "add": "نغدې ننوتلې",
+      "remove": "نغدې وتلې"
+    }
   },
   "teller": {
     "title": "صندوق / پیسې",
@@ -113,7 +195,9 @@
       "adminPasswordHint": "د سمولو پر مهال د اوسني پټ نوم ساتلو لپاره خالي پرېږدئ.",
       "phone": "تلیفون",
       "currency": "روپېړه",
-      "status": "حالت"
+      "status": "حالت",
+      "optional": "(اختیاري)",
+      "passwordMin": "لږ تر لږه ۸ توري."
     },
     "actions": {
       "activate": "فعالول",
@@ -121,7 +205,20 @@
       "resetCredentials": "د ننوتلو معلومات بیا ټاکل",
       "resetTitle": "د مدیر د ننوتلو معلومات بیا ټاکل",
       "newEmail": "نوی بریښنالیک (اختیاري)",
-      "newPassword": "نوی پټ نوم (اختیاري)"
+      "newPassword": "نوی پټ نوم (اختیاري)",
+      "updateCredentials": "د ننوتلو معلومات نوي کړه",
+      "credentialsUpdated": "د ننوتلو معلومات نوي شول.",
+      "createShop": "پلورنځی جوړ کړه",
+      "saveChanges": "بدلونونه خوندي کړه"
+    },
+    "settings": {
+      "title": "د زېرمې امستنې",
+      "allowNegativeInventory": "منفي زېرمې ته اجازه",
+      "allowNegativeInventoryHint": "کله چې بند وي، هغه پلور چې زېرمه صفر ته راټیټوي رد کیږي. د زېرمې سمون د اصلاح معاملې په توګه ثبت کړه.",
+      "allowAdvancePayments": "پیشنۍ تادیې ته اجازه",
+      "allowAdvancePaymentsHint": "کله چې بند وي، له پاتې حساب ډېره تادیه رد کیږي. یوازې د پوخوا پیشنۍ تادیې لپاره یې پرانیزه.",
+      "allowed": "اجازه لري — بند یې کړه",
+      "notAllowed": "اجازه نلري — پرانیزه یې کړه"
     }
   },
   "settings": {
@@ -232,13 +329,13 @@
   },
   "inventory": {
     "title": "زېرمه",
-    "subtitle": "په متره کالي زېرمه، له ریښتینو معاملو څخه محاسبه شوې.",
+    "subtitle": "د جامو ذخیره په ګز، د ریښتینو معاملو څخه محاسبه شوې.",
     "newCloth": "نوی ټوکر",
     "newTransaction": "نوې معامله",
     "viewAll": "ټول وګوره",
     "details": "د ټوکر معلومات",
     "totals": "د زېرمې ټولیز",
-    "totalMeters": "ټول متره",
+    "totalMeters": "ټول ګز",
     "valueAFN": "ارزښت په افغاني",
     "valueUSD": "ارزښت په ډالر",
     "stockCard": "د زېرمې لنډیز",
@@ -253,10 +350,19 @@
       "cloth": "ټوکر",
       "category": "کټګوري",
       "quantity": "مقدار",
-      "pricePerMeter": "د هر متر قیمت",
+      "pricePerMeter": "د هر واحد قیمت",
       "value": "ټول ارزښت",
       "direction": "لوری",
-      "source": "سرچینه"
+      "source": "سرچینه",
+      "code": "کوډ"
+    },
+    "transactionHint": "زېرمه یوازې په معاملو بدلیږي — اخیستل د برابروونکي حساب او نسیه پلور د پیرودونکي حساب زیاتوي.",
+    "directionIn": "ننوتل",
+    "directionOut": "وتل",
+    "sources": {
+      "purchase": "اخیستل",
+      "sale": "پلور",
+      "adjustment": "سمون"
     }
   },
   "reminders": {
@@ -316,16 +422,24 @@
       "clearFilters": "فلټرونه پاک کړه",
       "cloth": "ټوکر",
       "supplier": "برابروونکی",
-      "buyer": "پیرودونکی"
+      "buyer": "پیرودونکی",
+      "unit": "واحد",
+      "unitHint": "ګز د پلور او اخیستلو لپاره اصلي واحد دی؛ متر هم ملاتړ کیږي.",
+      "billNo": "د بل شمېره",
+      "billNoHint": "اختیاري — وروسته د بل شمېرې له مخې دا ثبت موندلای شئ.",
+      "receivedBy": "ترلاسه کوونکی",
+      "receivedByHint": "چا دا تادیه ترلاسه کړه (د لګښت کټګوري یا کارکوونکی)."
     },
     "cloth": {
       "clothName": "د ټوکر نوم",
       "category": "نوعیت / کټګوري",
       "categoryHint": "لکه کتان، پنبه",
-      "pricePerMeter": "د هر متر قیمت",
+      "pricePerMeter": "د هر واحد قیمت",
       "description": "تشریحات",
-      "lowStock": "د کمې زېرمې خبرتیا (متره)",
-      "lowStockHint": "اختیاري — کله چې زېرمه دې کچې ته ورسیږي، په ډشبورډ کې خبرتیا کیږي."
+      "lowStock": "د کمې ذخیرې خبرداری",
+      "lowStockHint": "د ټاکل شوي واحد له مخې. د غیر فعالولو لپاره خالي پرېږدئ.",
+      "code": "د ټوکر کوډ",
+      "codeHint": "اختیاري — لکه CL-1042"
     },
     "inventory": {
       "sourceType": "معامله",
@@ -335,7 +449,7 @@
       "direction": "لوری",
       "in": "ننوتل — زېرمه ترلاسه کول",
       "out": "وتل — زېرمه ورکول/پلورل",
-      "quantity": "مقدار (متره)",
+      "quantity": "مقدار",
       "supplierHint": "د اخیستلو لپاره اړین دی.",
       "buyerHint": "د پلور لپاره اړین دی.",
       "credit": "په نسیسه؟",
@@ -344,7 +458,8 @@
       "creditYes": "هو — په نسیسه",
       "amountPaid": "اوسنۍ تادیه شوې مقدار",
       "amountPaidHint": "اختیاري — په نسیسه کې، تادیه شوې برخه سمدلاسه تادیه ثبت کیږي.",
-      "recorded": "معامله ثبت شوه."
+      "recorded": "معامله ثبت شوه.",
+      "pricePerUnit": "د هر واحد قیمت"
     },
     "reminder": {
       "repeats": "تکرار",
@@ -372,6 +487,110 @@
       "inventory": "زېرمه",
       "partners": "شریکان",
       "teller": "صندوق"
+    }
+  },
+  "units": {
+    "yard": "ګز",
+    "meter": "متر",
+    "m": "م",
+    "yd": "ګز",
+    "perMeter": "هر ګز"
+  },
+  "ledger": {
+    "openingBalance": "پیلېدونکی حساب",
+    "total": "ټول",
+    "date": "نېټه",
+    "description": "تشریح",
+    "balance": "پاتې",
+    "currency": "روپېړه",
+    "totalsInView": "په دې لید کې ټول",
+    "openingBalanceNote": "پیلېدونکی حساب (له لومړنۍ معاملې مخکې)",
+    "bill": "بل",
+    "receivedBy": "ترلاسه کوونکی",
+    "labels": {
+      "buyer": {
+        "debit": "بدهکار (ورکړل شوي مال)",
+        "credit": "بستانکار (ترلاسه شوې پیسې)"
+      },
+      "supplier": {
+        "debit": "بدهکار (شوې تادیې)",
+        "credit": "بستانکار (اخیستل شوي کالي)"
+      },
+      "teller": {
+        "debit": "بدهکار (نغدې ننوتلې)",
+        "credit": "بستانکار (نغدې وتلې)"
+      }
+    },
+    "sources": {
+      "sale": "پلور",
+      "purchase": "اخیستل",
+      "teller": "صندوق",
+      "manual": "لاسي"
+    }
+  },
+  "expenses": {
+    "title": "لګښتونه",
+    "subtitle": "د پلورنځي ورځني لګښتونه: کرایه، ګودام، مالیې، پخلنځی، لېږد او بریښنا.",
+    "totals": "ټول لګښتونه",
+    "totalAFN": "ټول افغاني",
+    "totalUSD": "ټول ډالر",
+    "add": "لګښت اضافه کړه",
+    "record": "لګښت ثبت کړه",
+    "history": "د لګښتونو تاریخچه",
+    "empty": "تر اوسه لګښت ثبت شوی نه دی.",
+    "edit": "لګښت سمول",
+    "fields": {
+      "category": "کټګوري",
+      "name": "تشریح / خپل نوم",
+      "nameHint": "اختیاري — لکه جنراتور تېل",
+      "employee": "کارمند",
+      "selectEmployee": "یو کارمند وټاکئ",
+      "salaryHint": "مبلغ او اسعار د کارمند له ثبت شوي معاش څخه ډک کیږي."
+    },
+    "categories": {
+      "shopRent": "د دکان کرایه",
+      "warehouseRent": "د ګودام کرایه",
+      "yearlyTaxes": "کلنې مالیې",
+      "kitchenDaily": "ورځني پخلنځي لګښتونه",
+      "dailyOther": "نور ورځني لګښتونه",
+      "clothTransfer": "ټوکر دکان ته لېږد (موټر کرایه)",
+      "electricity": "د بریښنا بل",
+      "other": "نور",
+      "salary": "معاش"
+    }
+  },
+  "employees": {
+    "title": "کارکوونکي",
+    "subtitle": "د پلورنځي کارکوونکي چې نومونه یې د تادیې ترلاسه کوونکي کېدای شي.",
+    "add": "کارکوونکی اضافه کړه",
+    "record": "کارکوونکی اضافه کړه",
+    "list": "کارکوونکي",
+    "empty": "تر اوسه کارکوونکی نشته.",
+    "edit": "کارکوونکی سمول",
+    "fields": {
+      "role": "دنده / عنوان",
+      "salary": "معاش",
+      "salaryCurrency": "د معاش اسعار"
+    }
+  },
+  "bills": {
+    "title": "د بل پلټنه",
+    "subtitle": "د بل شمېرې په واسطه د پیرودونکي یا برابروونکي ثبت ومومه.",
+    "billNo": "د بل شمېره",
+    "placeholder": "لکه 202",
+    "search": "پلټنه",
+    "resultsFor": "د بل {billNo} پایلې",
+    "noResults": "د دې بل شمېرې لپاره کوم ثبت ونه موندل شو.",
+    "party": "طرف",
+    "kind": "حساب",
+    "buyer": "پیرودونکی",
+    "supplier": "برابروونکی",
+    "types": {
+      "goods": "ورکړل شوي مال",
+      "payment": "تادیه",
+      "purchase": "اخیستل",
+      "sale": "پلور",
+      "adjustment": "سمون"
     }
   }
 }

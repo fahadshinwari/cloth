@@ -10,3 +10,7 @@ export * from "./supplier-ledger-entry.model";
 export * from "./cloth.model";
 export * from "./inventory-movement.model";
 export * from "./teller-transaction.model";
+export * from "./expense.model";
+export * from "./employee.model";
+export * from "./role.model";
+export * from "./ledger-entry-audit.model";

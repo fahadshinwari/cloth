@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { ShopFormState } from "@/app/actions/tenant.actions";
+import { useI18n } from "../../_components/i18n-provider";
 
 export interface ShopFormValues {
   name?: string;
@@ -24,6 +25,7 @@ export function ShopForm({
   submitLabel: string;
   editing?: boolean;
 }) {
+  const { t } = useI18n();
   const [state, formAction, pending] = useActionState(action, {} as ShopFormState);
   const fieldErrors = state.fieldErrors ?? {};
 
@@ -33,13 +35,13 @@ export function ShopForm({
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
       <label className="flex flex-col gap-1.5 text-sm sm:col-span-2">
-        <span className="font-medium">Shop name</span>
+        <span className="font-medium">{t("admin.fields.name")}</span>
         <input name="name" defaultValue={values?.name} required className={inputClass} />
         {fieldErrors.name ? <span className="text-xs text-red-600">{fieldErrors.name}</span> : null}
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Slug</span>
+        <span className="font-medium">{t("admin.fields.slug")}</span>
         <input
           name="slug"
           defaultValue={values?.slug}
@@ -48,24 +50,24 @@ export function ShopForm({
           pattern="[a-z0-9]+(-[a-z0-9]+)*"
           className={inputClass}
         />
-        <span className="text-xs text-zinc-500">URL: /{values?.slug || "shop"}/dashboard</span>
+        <span className="text-xs text-zinc-500">{t("admin.fields.slugHint", { slug: values?.slug || "shop" })}</span>
         {fieldErrors.slug ? <span className="text-xs text-red-600">{fieldErrors.slug}</span> : null}
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Phone</span>
+        <span className="font-medium">{t("admin.fields.phone")}</span>
         <input name="phone" defaultValue={values?.phone} required dir="ltr" className={inputClass} />
         {fieldErrors.phone ? <span className="text-xs text-red-600">{fieldErrors.phone}</span> : null}
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Admin name</span>
+        <span className="font-medium">{t("admin.fields.adminName")}</span>
         <input name="adminName" defaultValue={values?.adminName} required className={inputClass} />
         {fieldErrors.adminName ? <span className="text-xs text-red-600">{fieldErrors.adminName}</span> : null}
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Admin email</span>
+        <span className="font-medium">{t("admin.fields.adminEmail")}</span>
         <input
           name="adminEmail"
           type="email"
@@ -78,7 +80,9 @@ export function ShopForm({
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Admin password {editing ? "(optional)" : ""}</span>
+        <span className="font-medium">
+          {t("admin.fields.adminPassword")} {editing ? t("admin.fields.optional") : ""}
+        </span>
         <input
           name="adminPassword"
           type="password"
@@ -88,7 +92,7 @@ export function ShopForm({
           className={inputClass}
         />
         <span className="text-xs text-zinc-500">
-          {editing ? "Leave blank to keep the current password." : "At least 8 characters."}
+          {editing ? t("admin.fields.adminPasswordHint") : t("admin.fields.passwordMin")}
         </span>
         {fieldErrors.adminPassword ? (
           <span className="text-xs text-red-600">{fieldErrors.adminPassword}</span>
@@ -96,7 +100,7 @@ export function ShopForm({
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Currency</span>
+        <span className="font-medium">{t("admin.fields.currency")}</span>
         <select name="currency" defaultValue={values?.currency ?? "AFN"} className={inputClass}>
           <option value="AFN">AFN</option>
           <option value="USD">USD</option>
@@ -105,10 +109,10 @@ export function ShopForm({
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Status</span>
+        <span className="font-medium">{t("admin.fields.status")}</span>
         <select name="status" defaultValue={values?.status ?? "active"} className={inputClass}>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="active">{t("forms.common.active")}</option>
+          <option value="inactive">{t("forms.common.inactive")}</option>
         </select>
         {fieldErrors.status ? <span className="text-xs text-red-600">{fieldErrors.status}</span> : null}
       </label>

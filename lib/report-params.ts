@@ -7,7 +7,7 @@ import { z } from "zod";
  *
  * Params:
  *   type            — report type (daily, weekly, monthly, buyers, ...)
- *   format          — csv | pdf
+ *   format          — csv | xlsx
  *   from / to       — inclusive date window (yyyy-mm-dd)
  *   buyerId         — filter buyer reports to one buyer
  *   supplierId      — filter supplier reports to one supplier
@@ -42,7 +42,7 @@ export type ReportType = (typeof REPORT_TYPES)[number];
 export const reportParamsSchema = z
   .object({
     type: z.enum(REPORT_TYPES),
-    format: z.enum(["csv", "pdf"]),
+    format: z.enum(["csv", "xlsx"]),
     from: dateParam.optional(),
     to: dateParam.optional(),
     buyerId: objectId.optional(),

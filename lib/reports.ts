@@ -21,7 +21,7 @@ import {
   type Currency,
 } from "./constants";
 import { formatMinorAmount, fromMinorUnits } from "./money";
-import { formatMeters } from "./measure";
+import { MM_PER_METER, MM_PER_YARD, formatMeters } from "./measure";
 
 /**
  * Server-side reporting engine. Every function is tenant-scoped: the caller
@@ -348,6 +348,7 @@ export async function getBuyerReport(
 export interface LedgerHistoryRow {
   date: Date;
   description: string;
+  billNo: string;
   type: string;
   debitMinor: number;
   creditMinor: number;
@@ -376,6 +377,7 @@ export async function getBuyerHistory(
   return entries.map((entry) => ({
     date: entry.occurredAt,
     description: entry.note || (entry.type === LEDGER_ENTRY_TYPE.GOODS ? "Clothes given" : "Payment received"),
+    billNo: entry.billNo ?? "",
     type: entry.type,
     debitMinor: entry.type === LEDGER_ENTRY_TYPE.GOODS ? entry.amountMinor : 0,
     creditMinor: entry.type === LEDGER_ENTRY_TYPE.PAYMENT ? entry.amountMinor : 0,
@@ -490,6 +492,7 @@ export async function getSupplierHistory(
   return entries.map((entry) => ({
     date: entry.occurredAt,
     description: entry.note || (entry.type === SUPPLIER_LEDGER_ENTRY_TYPE.PURCHASE ? "Clothing taken" : "Payment made"),
+    billNo: entry.billNo ?? "",
     type: entry.type,
     debitMinor: entry.type === SUPPLIER_LEDGER_ENTRY_TYPE.PAYMENT ? entry.amountMinor : 0,
     creditMinor: entry.type === SUPPLIER_LEDGER_ENTRY_TYPE.PURCHASE ? entry.amountMinor : 0,
@@ -498,13 +501,17 @@ export async function getSupplierHistory(
 }
 
 // ---------------------------------------------------------------------------
-// Inventory report — meters in / out, current stock, value per cloth
+// Inventory report — yards in / out, current stock, value per cloth
 // ---------------------------------------------------------------------------
 
 export interface InventoryReportRow {
   clothId: string;
   name: string;
+  code: string;
   category: string;
+  yardsIn: number;
+  yardsOut: number;
+  /** Legacy meter values kept for backwards-compatible programmatic callers. */
   metersIn: number;
   metersOut: number;
   currentMm: number;
@@ -576,9 +583,12 @@ export async function getInventoryReport(
     result.push({
       clothId,
       name: cloth.name,
+      code: (cloth as ReportParty & { code?: string }).code ?? "",
       category: cloth.category ?? "",
-      metersIn: row ? row.metersInMm / 1000 : 0,
-      metersOut: row ? row.metersOutMm / 1000 : 0,
+      yardsIn: row ? row.metersInMm / MM_PER_YARD : 0,
+      yardsOut: row ? row.metersOutMm / MM_PER_YARD : 0,
+      metersIn: row ? row.metersInMm / MM_PER_METER : 0,
+      metersOut: row ? row.metersOutMm / MM_PER_METER : 0,
       currentMm,
       pricePerMeterMinor: price,
       valueMinor: Math.round((currentMm / 1000) * price),

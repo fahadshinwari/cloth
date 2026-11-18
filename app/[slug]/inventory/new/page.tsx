@@ -5,6 +5,8 @@ import { notFound, redirect } from "next/navigation";
 import { USER_ROLE } from "@/lib/constants";
 import { getAuthContext } from "@/lib/auth";
 import { getShopBySlug } from "@/lib/services/tenant.service";
+import { getTranslator } from "@/lib/i18n/dictionaries";
+import { getRequestLocale } from "@/lib/i18n/request";
 import { Card } from "../../../_components/ui";
 import { ClothForm } from "../../_components/cloth-form";
 
@@ -25,15 +27,17 @@ export default async function NewClothPage({
     }
   }
 
+  const locale = await getRequestLocale();
+  const t = getTranslator(locale);
   const suppliers = await listSuppliers(String(shop._id));
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <Link href={`/${slug}/inventory`} className="text-sm text-zinc-500 hover:underline">
-          ← Inventory
+          ← {t("inventory.title")}
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">New cloth</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">{t("inventory.newCloth")}</h1>
       </div>
 
       <Card>
@@ -44,7 +48,7 @@ export default async function NewClothPage({
             name: supplier.name,
             companyName: supplier.companyName,
           }))}
-          submitLabel="Create cloth"
+          submitLabel={t("common.create")}
           onCancelHref={`/${slug}/inventory`}
         />
       </Card>

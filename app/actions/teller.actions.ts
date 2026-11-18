@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireMerchantAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import {
   TellerServiceError,
   createTellerTransaction,
@@ -16,7 +16,7 @@ export async function createTellerTransactionAction(
 ): Promise<FormActionState> {
   let ctx;
   try {
-    ctx = await requireMerchantAdmin();
+    ctx = await requirePermission("teller.manage");
   } catch {
     return { error: "Unauthorized" };
   }

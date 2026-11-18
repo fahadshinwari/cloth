@@ -1,10 +1,15 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { USER_ROLE } from "@/lib/constants";
 import { getAuthContext } from "@/lib/auth";
 import { getShopBySlug } from "@/lib/services/tenant.service";
-import { buildReportTable, renderReportCsv, renderReportPdf } from "@/lib/report-export";
+import { buildReportTable, renderReportCsv, renderReportXlsx } from "@/lib/report-export";
 import { parseReportParams, toReportFilters } from "@/lib/report-params";
+import { getRequestLocale } from "@/lib/i18n/request";
+
+// Mongoose + SheetJS need the Node.js runtime (not Edge) — this is also the
+// reason exports must avoid native/binary dependencies on Vercel.
+export const runtime = "nodejs";
 
 /**
  * Tenant-scoped report export endpoint.
@@ -21,7 +26,7 @@ import { parseReportParams, toReportFilters } from "@/lib/report-params";
 const slugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Invalid slug");
 
 export async function GET(
-  request: NextRequest,
+  request: Request,
   context: { params: Promise<{ slug: string }> },
 ) {
   const ctx = await getAuthContext();
@@ -60,29 +65,31 @@ export async function GET(
   const filters = toReportFilters(params);
   const bucket = params.bucket ?? (params.type === "weekly" ? "week" : params.type === "monthly" ? "month" : "day");
 
-  const table = await buildReportTable(tenantId, params.type, filters, bucket);
+  // Export headers follow the same locale as the app (cookie-backed).
+  const locale = await getRequestLocale();
+  const table = await buildReportTable(tenantId, params.type, filters, bucket, locale);
 
   const stamp = new Date().toISOString().slice(0, 10);
   const filename = `${slugParsed.data}-${params.type}-${stamp}`;
 
-  if (params.format === "csv") {
-    const csv = renderReportCsv(table);
-    return new NextResponse(csv, {
+  if (params.format === "xlsx") {
+    const workbook = renderReportXlsx(table);
+    return new Response(new Uint8Array(workbook), {
       status: 200,
       headers: {
-        "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${filename}.csv"`,
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${filename}.xlsx"`,
         "Cache-Control": "no-store",
       },
     });
   }
 
-  const pdf = renderReportPdf(table);
-  return new NextResponse(new Uint8Array(pdf), {
+  const csv = renderReportCsv(table);
+  return new Response(csv, {
     status: 200,
     headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${filename}.pdf"`,
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename}.csv"`,
       "Cache-Control": "no-store",
     },
   });

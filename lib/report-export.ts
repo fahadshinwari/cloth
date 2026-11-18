@@ -1,5 +1,6 @@
 import "server-only";
 
+import * as XLSX from "xlsx";
 import {
   getBuyerHistory,
   getBuyerReport,
@@ -13,12 +14,17 @@ import {
   type ReportType,
 } from "./reports";
 import { formatMinorAmount } from "./money";
-import { formatMeters } from "./measure";
+import { formatQuantity, pricePerYardMinor } from "./measure";
+import { getTranslator } from "./i18n/dictionaries";
+import type { Locale } from "./constants";
 
 /**
- * Report rendering for CSV and PDF exports. All data functions are
+ * Report rendering for CSV and XLSX exports. All data functions are
  * tenant-scoped (lib/reports.ts); the tenantId passed here must come from
  * the authenticated session, never from client input.
+ *
+ * Headers, section titles and filter labels are translated with the same
+ * dictionaries as the on-screen reports, so exports match the active locale.
  */
 
 export interface ReportSection {
@@ -41,16 +47,50 @@ function money(minor: number, currency: "AFN" | "USD"): string {
   return formatMinorAmount(minor, currency);
 }
 
-function fmtDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
+/**
+ * Normalize phone numbers to the app's canonical display format: "+93 XXX XXX XXX".
+ * Accepts a range of common inputs (e.g. "07012345678", "+93700000000",
+ * "+93 700 000 000") and normalizes Afghanistan mobile numbers to the same
+ * grouped format the rest of the UI uses.
+ */
+function normalizedPhone(raw: string): string {
+  const digits = String(raw ?? "").replace(/\D+/g, "");
+  if (!digits) return "";
+  let core = digits;
+  if (core.startsWith("937")) core = core.slice(2);
+  else if (core.startsWith("93")) core = core.slice(2);
+  if (core.startsWith("0")) core = core.slice(1);
+  if (/^\d{9}$/.test(core)) {
+    return `+93 ${core.slice(0, 3)} ${core.slice(3, 6)} ${core.slice(6, 9)}`;
+  }
+  // Not a recognized mobile number: return the original trimmed value so a
+  // non-AFN number or unusual format is still shown rather than blanked.
+  return String(raw).trim();
 }
 
-function windowMeta(filters: ReportFilters): Array<[string, string]> {
+function fmtDate(date: Date): string {
+  // Reports use Kabul local time (Asia/Kabul, +04:30), matching the aggregation
+  // timezone used in lib/reports.ts.
+  const utc = date.getTime() + date.getTimezoneOffset() * 60_000;
+  const KabulOffset = 4.5 * 3_600_000;
+  const kabul = new Date(utc + KabulOffset);
+  const y = kabul.getUTCFullYear();
+  const m = String(kabul.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(kabul.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function windowMeta(
+  filters: ReportFilters,
+  t: ReturnType<typeof getTranslator>,
+): Array<[string, string]> {
   const meta: Array<[string, string]> = [];
-  if (filters.from) meta.push(["From", fmtDate(filters.from)]);
-  if (filters.to) meta.push(["To", fmtDate(filters.to)]);
-  if (filters.currency) meta.push(["Currency", filters.currency]);
-  if (filters.type) meta.push(["Transaction type", filters.type]);
+  if (filters.from) meta.push([t("reports.meta.from"), fmtDate(filters.from)]);
+  if (filters.to) meta.push([t("reports.meta.to"), fmtDate(filters.to)]);
+  if (filters.currency) meta.push([t("reports.meta.currency"), filters.currency]);
+  if (filters.type) {
+    meta.push([t("reports.meta.transactionType"), t(`reports.transactionTypes.${filters.type}`)]);
+  }
   return meta;
 }
 
@@ -90,185 +130,36 @@ export function renderReportCsv(table: ReportTable): string {
   for (const section of table.sections ?? []) {
     lines.push(...csvSection(section));
   }
-  return lines.join("\r\n");
+  // UTF-8 BOM so Excel opens non-Latin (Dari/Pashto) CSV text correctly.
+  return `\uFEFF${lines.join("\r\n")}`;
 }
 
 // ---------------------------------------------------------------------------
-// PDF — minimal single-font renderer (no external deps, no web fonts)
+// XLSX — generated in-process with the pure-JS SheetJS writer. No native
+// modules, no filesystem access, so it works on serverless hosts (Vercel).
 // ---------------------------------------------------------------------------
 
-const PAGE_WIDTH = 792; // Letter landscape, pt
-const PAGE_HEIGHT = 612;
-const MARGIN = 40;
-const LINE_HEIGHT = 14;
-const MAX_TEXT_WIDTH = PAGE_WIDTH - MARGIN * 2;
-
-/** Helvetica widths (approximation): use 0.5 × size per char for layout only. */
-function textWidth(text: string, size: number): number {
-  return text.length * size * 0.5;
-}
-
-function clipToWidth(text: string, size: number, maxWidth: number): string {
-  if (textWidth(text, size) <= maxWidth) return text;
-  let clipped = text;
-  while (clipped.length > 1 && textWidth(`${clipped}…`, size) > maxWidth) {
-    clipped = clipped.slice(0, -1);
-  }
-  return `${clipped}…`;
-}
-
-function escapePdfText(text: string): string {
-  return text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-}
-
-interface PageOp {
-  ops: string[];
-}
-
-function createPage(): PageOp {
-  return { ops: [] };
-}
-
-function drawText(page: PageOp, x: number, y: number, text: string, size = 9, bold = false): void {
-  page.ops.push(
-    `BT /${bold ? "F2" : "F1"} ${size} Tf 1 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)} Tm (${escapePdfText(text)}) Tj ET`,
-  );
-}
-
-function drawLine(page: PageOp, x1: number, y1: number, x2: number, y2: number): void {
-  page.ops.push(`${x1.toFixed(1)} ${y1.toFixed(1)} m ${x2.toFixed(1)} ${y2.toFixed(1)} l S`);
-}
-
-interface PdfDoc {
-  pages: PageOp[];
-}
-
-function newPdf(): PdfDoc {
-  return { pages: [createPage()] };
-}
-
-function addPage(doc: PdfDoc): PageOp {
-  const page = createPage();
-  doc.pages.push(page);
-  return page;
-}
-
-/** Column x positions distributed across the usable width. */
-function columnX(count: number): number[] {
-  const usable = MAX_TEXT_WIDTH;
-  const width = usable / count;
-  return Array.from({ length: count }, (_, index) => MARGIN + index * width);
-}
-
-function renderSection(
-  pageArg: PageOp,
-  doc: PdfDoc,
-  section: ReportSection,
-  state: { y: number },
-): PageOp {
-  let page = pageArg;
-  // Section title
-  if (state.y < MARGIN + LINE_HEIGHT * 3) {
-    page = addPage(doc);
-  }
-  drawText(page, MARGIN, state.y, section.title, 11, true);
-  state.y -= LINE_HEIGHT * 1.5;
-
-  const xs = columnX(section.columns.length);
-  for (let i = 0; i < section.columns.length; i += 1) {
-    drawText(page, xs[i], state.y, clipToWidth(section.columns[i], 9, MAX_TEXT_WIDTH / section.columns.length - 4), 9, true);
-  }
-  drawLine(page, MARGIN, state.y - 4, PAGE_WIDTH - MARGIN, state.y - 4);
-  state.y -= LINE_HEIGHT + 2;
-
-  for (const row of section.rows) {
-    if (state.y < MARGIN + LINE_HEIGHT) {
-      page = addPage(doc);
-      state.y = PAGE_HEIGHT - MARGIN;
-      for (let i = 0; i < section.columns.length; i += 1) {
-        drawText(page, xs[i], state.y, clipToWidth(section.columns[i], 9, MAX_TEXT_WIDTH / section.columns.length - 4), 9, true);
-      }
-      state.y -= LINE_HEIGHT + 2;
-    }
-    for (let i = 0; i < row.length; i += 1) {
-      drawText(
-        page,
-        xs[i],
-        state.y,
-        clipToWidth(row[i] ?? "", 9, MAX_TEXT_WIDTH / section.columns.length - 4),
-        9,
-      );
-    }
-    state.y -= LINE_HEIGHT;
-  }
-  state.y -= LINE_HEIGHT;
-  return page;
-}
-
-export function renderReportPdf(table: ReportTable): Buffer {
-  const doc = newPdf();
-  const page = doc.pages[0];
-  let y = PAGE_HEIGHT - MARGIN;
-
-  // Title
-  drawText(page, MARGIN, y, table.title, 16, true);
-  y -= LINE_HEIGHT * 2;
-
-  // Meta (filters)
+export function renderReportXlsx(table: ReportTable): Buffer {
+  const rows: Array<Array<string | number>> = [];
+  rows.push([table.title]);
   for (const [key, value] of table.meta) {
-    drawText(page, MARGIN, y, `${key}: ${value}`, 9);
-    y -= LINE_HEIGHT;
+    rows.push([key, value]);
   }
-  if (table.meta.length > 0) y -= LINE_HEIGHT * 0.5;
+  rows.push([]);
+  rows.push(table.columns);
+  for (const row of table.rows) rows.push(row);
 
-  renderSection(page, doc, { title: "", columns: table.columns, rows: table.rows }, { y });
-  // Continue remaining sections on the current last page (renderSection may
-  // have appended pages if the main table overflowed).
-  let lastPage = doc.pages[doc.pages.length - 1];
   for (const section of table.sections ?? []) {
-    lastPage = renderSection(lastPage, doc, section, {
-      y: PAGE_HEIGHT - MARGIN,
-    });
+    rows.push([]);
+    rows.push([section.title]);
+    rows.push(section.columns);
+    for (const row of section.rows) rows.push(row);
   }
 
-  // --- Serialize ---
-  const objects: string[] = [];
-  const pageCount = doc.pages.length;
-
-  const pageObjIds = doc.pages.map((_, index) => 4 + index * 2);
-
-  objects.push(`1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`);
-  const kids = pageObjIds.map((id) => `${id} 0 R`).join(" ");
-  objects.push(`2 0 obj\n<< /Type /Pages /Kids [${kids}] /Count ${pageCount} >>\nendobj\n`);
-  objects.push(`3 0 obj\n<< /F1 /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`);
-  objects.push(`4 0 obj\n<< /F2 /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n`);
-
-  doc.pages.forEach((p, index) => {
-    const contentId = pageObjIds[index] + 1;
-    const content = p.ops.join("\n");
-    objects.push(
-      `${pageObjIds[index]} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentId} 0 R >>\nendobj\n`,
-    );
-    objects.push(
-      `${contentId} 0 obj\n<< /Length ${Buffer.byteLength(content, "latin1")} >>\nstream\n${content}\nendstream\nendobj\n`,
-    );
-  });
-
-  let pdf = "%PDF-1.4\n";
-  const offsets: number[] = [];
-  for (const obj of objects) {
-    offsets.push(Buffer.byteLength(pdf, "latin1"));
-    pdf += obj;
-  }
-
-  const xrefPos = Buffer.byteLength(pdf, "latin1");
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  for (const offset of offsets) {
-    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
-  }
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`;
-
-  return Buffer.from(pdf, "latin1");
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
 }
 
 // ---------------------------------------------------------------------------
@@ -280,20 +171,28 @@ export async function buildReportTable(
   type: ReportType,
   filters: ReportFilters,
   bucket: "day" | "week" | "month" = "day",
+  locale: Locale = "en",
 ): Promise<ReportTable> {
+  const t = getTranslator(locale);
+
   switch (type) {
     case "daily":
     case "weekly":
     case "monthly": {
       const rows = await getPeriodReport(tenantId, bucket, filters);
       return {
-        title:
-          type === "daily"
-            ? "Daily transactions"
-            : type === "weekly"
-              ? "Weekly transactions"
-              : "Monthly transactions",
-        columns: ["Period", "Currency", "Goods given", "Payments received", "Purchases", "Supplier payments", "Investments", "Teller in", "Teller out"],
+        title: t(`reports.titles.${type}`),
+        columns: [
+          t("reports.columns.period"),
+          t("reports.columns.currency"),
+          t("reports.columns.goodsGiven"),
+          t("reports.columns.paymentsReceived"),
+          t("reports.columns.purchases"),
+          t("reports.columns.supplierPayments"),
+          t("reports.columns.investments"),
+          t("reports.columns.tellerIn"),
+          t("reports.columns.tellerOut"),
+        ],
         rows: rows.map((row) => [
           row.period,
           row.currency,
@@ -305,7 +204,7 @@ export async function buildReportTable(
           money(row.tellerInMinor, row.currency),
           money(row.tellerOutMinor, row.currency),
         ]),
-        meta: windowMeta(filters),
+        meta: windowMeta(filters, t),
       };
     }
 
@@ -318,8 +217,9 @@ export async function buildReportTable(
           historyRows.push([
             row.name,
             fmtDate(entry.date),
+            entry.billNo,
             entry.description,
-            entry.type,
+            t(`reports.transactionTypes.${entry.type}`),
             money(entry.debitMinor, entry.currency),
             money(entry.creditMinor, entry.currency),
             entry.currency,
@@ -330,26 +230,43 @@ export async function buildReportTable(
         historyRows.length > 0
           ? [
               {
-                title: "Buyer transaction history",
-                columns: ["Buyer", "Date", "Description", "Type", "Debit", "Credit", "Currency"],
+                title: t("reports.sections.buyerHistory"),
+                columns: [
+                  t("reports.columns.buyer"),
+                  t("reports.columns.date"),
+                  t("reports.columns.billNo"),
+                  t("reports.columns.description"),
+                  t("reports.columns.type"),
+                  t("reports.columns.debit"),
+                  t("reports.columns.credit"),
+                  t("reports.columns.currency"),
+                ],
                 rows: historyRows,
               },
             ]
           : [];
 
       return {
-        title: "Buyer report",
-        columns: ["Buyer", "Shop", "Phone", "Currency", "Clothes received", "Payments", "Outstanding"],
+        title: t("reports.titles.buyers"),
+        columns: [
+          t("reports.columns.buyer"),
+          t("reports.columns.shop"),
+          t("reports.columns.phone"),
+          t("reports.columns.currency"),
+          t("reports.columns.clothesReceived"),
+          t("reports.columns.payments"),
+          t("reports.columns.outstanding"),
+        ],
         rows: rows.map((row) => [
           row.name,
           row.shopName,
-          row.phone,
+          normalizedPhone(row.phone),
           row.currency,
           money(row.goodsMinor, row.currency),
           money(row.paymentsMinor, row.currency),
           money(row.outstandingMinor, row.currency),
         ]),
-        meta: windowMeta(filters),
+        meta: windowMeta(filters, t),
         sections,
       };
     }
@@ -363,8 +280,9 @@ export async function buildReportTable(
           historyRows.push([
             row.name,
             fmtDate(entry.date),
+            entry.billNo,
             entry.description,
-            entry.type,
+            t(`reports.transactionTypes.${entry.type}`),
             money(entry.debitMinor, entry.currency),
             money(entry.creditMinor, entry.currency),
             entry.currency,
@@ -375,26 +293,43 @@ export async function buildReportTable(
         historyRows.length > 0
           ? [
               {
-                title: "Supplier transaction history",
-                columns: ["Supplier", "Date", "Description", "Type", "Debit", "Credit", "Currency"],
+                title: t("reports.sections.supplierHistory"),
+                columns: [
+                  t("reports.columns.supplier"),
+                  t("reports.columns.date"),
+                  t("reports.columns.billNo"),
+                  t("reports.columns.description"),
+                  t("reports.columns.type"),
+                  t("reports.columns.debit"),
+                  t("reports.columns.credit"),
+                  t("reports.columns.currency"),
+                ],
                 rows: historyRows,
               },
             ]
           : [];
 
       return {
-        title: "Supplier report",
-        columns: ["Supplier", "Company", "Phone", "Currency", "Clothing received", "Payments made", "Outstanding payable"],
+        title: t("reports.titles.suppliers"),
+        columns: [
+          t("reports.columns.supplier"),
+          t("reports.columns.company"),
+          t("reports.columns.phone"),
+          t("reports.columns.currency"),
+          t("reports.columns.clothingReceived"),
+          t("reports.columns.paymentsMade"),
+          t("reports.columns.outstandingPayable"),
+        ],
         rows: rows.map((row) => [
           row.name,
           row.companyName,
-          row.phone,
+          normalizedPhone(row.phone),
           row.currency,
           money(row.purchasesMinor, row.currency),
           money(row.paymentsMinor, row.currency),
           money(row.payableMinor, row.currency),
         ]),
-        meta: windowMeta(filters),
+        meta: windowMeta(filters, t),
         sections,
       };
     }
@@ -402,37 +337,64 @@ export async function buildReportTable(
     case "inventory": {
       const rows = await getInventoryReport(tenantId, filters);
       return {
-        title: "Inventory report",
-        columns: ["Cloth", "Category", "Meters in", "Meters out", "Current meters", "Price per meter", "Inventory value", "Currency"],
+        title: t("reports.titles.inventory"),
+        columns: [
+          t("reports.columns.cloth"),
+          t("reports.columns.code"),
+          t("reports.columns.category"),
+          t("reports.columns.metersIn"),
+          t("reports.columns.metersOut"),
+          t("reports.columns.currentMeters"),
+          t("reports.columns.pricePerMeter"),
+          t("reports.columns.inventoryValue"),
+          t("reports.columns.currency"),
+        ],
         rows: rows.map((row) => [
           row.name,
+          row.code,
           row.category,
-          row.metersIn.toFixed(3),
-          row.metersOut.toFixed(3),
-          formatMeters(row.currentMm),
-          money(row.pricePerMeterMinor, row.currency),
+          row.yardsIn.toFixed(3),
+          row.yardsOut.toFixed(3),
+          formatQuantity(row.currentMm, "yard", t("units.yd")),
+          money(pricePerYardMinor(row.pricePerMeterMinor), row.currency),
           money(row.valueMinor, row.currency),
           row.currency,
         ]),
-        meta: windowMeta(filters),
+        meta: windowMeta(filters, t),
       };
     }
 
     case "partners": {
       const rows = await getPartnerReport(tenantId, filters);
       return {
-        title: "Partner investment report",
-        columns: ["Partner", "Phone", "Currency", "Invested"],
-        rows: rows.map((row) => [row.name, row.phone, row.currency, money(row.investedMinor, row.currency)]),
-        meta: windowMeta(filters),
+        title: t("reports.titles.partners"),
+        columns: [
+          t("reports.columns.partner"),
+          t("reports.columns.phone"),
+          t("reports.columns.currency"),
+          t("reports.columns.invested"),
+        ],
+        rows: rows.map((row) => [
+          row.name,
+          normalizedPhone(row.phone),
+          row.currency,
+          money(row.investedMinor, row.currency),
+        ]),
+        meta: windowMeta(filters, t),
       };
     }
 
     case "teller": {
       const rows = await getTellerReport(tenantId, bucket, filters);
       return {
-        title: "Teller report",
-        columns: ["Period", "Currency", "Cash in", "Cash out", "Net"],
+        title: t("reports.titles.teller"),
+        columns: [
+          t("reports.columns.period"),
+          t("reports.columns.currency"),
+          t("reports.columns.cashIn"),
+          t("reports.columns.cashOut"),
+          t("reports.columns.net"),
+        ],
         rows: rows.map((row) => [
           row.period,
           row.currency,
@@ -440,7 +402,7 @@ export async function buildReportTable(
           money(row.outflowMinor, row.currency),
           money(row.netMinor, row.currency),
         ]),
-        meta: windowMeta(filters),
+        meta: windowMeta(filters, t),
       };
     }
   }

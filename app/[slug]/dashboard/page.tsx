@@ -15,7 +15,7 @@ import {
 import { getInventorySummary } from "@/lib/services/inventory.service";
 import { getTellerBalance } from "@/lib/services/teller.service";
 import { formatMinorAmount } from "@/lib/i18n/format";
-import { formatMeters } from "@/lib/measure";
+import { formatQuantity } from "@/lib/measure";
 import { getTranslator } from "@/lib/i18n/dictionaries";
 import { getRequestLocale } from "@/lib/i18n/request";
 import { Card } from "../../_components/ui";
@@ -219,7 +219,7 @@ export default async function TenantDashboardPage({
           <div>
             <div className="text-xs uppercase tracking-wide text-zinc-500">{t("inventory.totalMeters")}</div>
             <div className="mt-1 text-lg font-semibold" dir="ltr">
-              {formatMeters(inventory.totalMetersMm)}
+              {formatQuantity(inventory.totalMetersMm, "yard", t("units.yd"))}
             </div>
           </div>
           <div>
@@ -248,7 +248,7 @@ export default async function TenantDashboardPage({
                     className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 hover:underline dark:bg-amber-900/60 dark:text-amber-200"
                     dir="ltr"
                   >
-                    {cloth.name}: {formatMeters(stockMm)}
+                    {cloth.name}: {formatQuantity(stockMm, "yard", t("units.yd"))}
                   </Link>
                 </li>
               ))}

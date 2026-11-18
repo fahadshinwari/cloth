@@ -111,9 +111,14 @@ export async function updateShop(id: string, input: ShopInput): Promise<ShopDocu
   shop.status = input.status;
   await shop.save();
 
-  // Keep the merchant admin user record in sync with shop identity fields.
+  // Keep the shop OWNER user record in sync with shop identity fields — shop
+  // staff accounts must not be renamed or have their credentials overwritten.
   await UserModel.updateOne(
-    { role: USER_ROLE.MERCHANT_ADMIN, tenantId: shop._id },
+    {
+      role: USER_ROLE.MERCHANT_ADMIN,
+      tenantId: shop._id,
+      $or: [{ roleKey: "owner" }, { roleKey: { $exists: false } }],
+    },
     {
       $set: {
         name: input.adminName,
@@ -126,7 +131,11 @@ export async function updateShop(id: string, input: ShopInput): Promise<ShopDocu
   if (input.adminPassword) {
     const passwordHash = await bcrypt.hash(input.adminPassword, 12);
     await UserModel.updateOne(
-      { role: USER_ROLE.MERCHANT_ADMIN, tenantId: shop._id },
+      {
+        role: USER_ROLE.MERCHANT_ADMIN,
+        tenantId: shop._id,
+        $or: [{ roleKey: "owner" }, { roleKey: { $exists: false } }],
+      },
       { $set: { passwordHash } },
     );
     shop.adminPasswordHash = passwordHash;
@@ -185,7 +194,11 @@ export async function resetShopCredentials(
 
   if (Object.keys(update).length > 0) {
     await UserModel.updateOne(
-      { role: USER_ROLE.MERCHANT_ADMIN, tenantId: shop._id },
+      {
+        role: USER_ROLE.MERCHANT_ADMIN,
+        tenantId: shop._id,
+        $or: [{ roleKey: "owner" }, { roleKey: { $exists: false } }],
+      },
       { $set: update },
     );
   }

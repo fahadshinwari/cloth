@@ -14,8 +14,9 @@ import {
 } from "../models";
 import { connectToDatabase } from "../mongodb";
 import { toMinorUnits } from "../money";
-import { MM_PER_METER } from "../measure";
+import { MM_PER_METER, MM_PER_YARD, YARD_IN_METERS, mmPerUnit } from "../measure";
 import {
+  CLOTH_UNIT,
   INVENTORY_DIRECTION,
   INVENTORY_SOURCE_TYPE,
   LEDGER_ENTRY_TYPE,
@@ -86,6 +87,16 @@ export async function createCloth(
     throw new InventoryServiceError("A cloth with this name already exists.", "name");
   }
 
+  if (input.code) {
+    const codeDuplicate = await ClothModel.findOne({
+      tenantId: toObjectId(tenantId),
+      code: input.code,
+    });
+    if (codeDuplicate) {
+      throw new InventoryServiceError("A cloth with this code already exists.", "code");
+    }
+  }
+
   if (input.supplierId) {
     const supplier = await SupplierModel.findById(input.supplierId);
     if (!supplier || supplier.tenantId.toString() !== tenantId) {
@@ -93,19 +104,26 @@ export async function createCloth(
     }
   }
 
-  const pricePerMeterMinor = toMinorUnits(input.pricePerMeter, input.currency);
-  if (pricePerMeterMinor === null || pricePerMeterMinor <= 0) {
-    throw new InventoryServiceError("Invalid price per meter.", "pricePerMeter");
+  // UI callers price cloth per yard; legacy programmatic callers (no unit)
+  // keep sending a per-meter price. Storage stays canonical per meter.
+  const unit = input.unit ?? CLOTH_UNIT.METER;
+  const pricePerUnitMinor = toMinorUnits(input.pricePerMeter, input.currency);
+  if (pricePerUnitMinor === null || pricePerUnitMinor <= 0) {
+    throw new InventoryServiceError("Invalid price.", "pricePerMeter");
   }
+  const pricePerMeterMinor =
+    unit === CLOTH_UNIT.YARD ? Math.round(pricePerUnitMinor / YARD_IN_METERS) : pricePerUnitMinor;
 
   const lowStockThresholdMm =
     input.lowStockThresholdMeters.trim() === ""
       ? null
-      : Math.round(Number(input.lowStockThresholdMeters.replace(/,/g, "")) * 1000);
+      : Math.round(Number(input.lowStockThresholdMeters.replace(/,/g, "")) * mmPerUnit(unit));
 
   return ClothModel.create({
     tenantId: toObjectId(tenantId),
     name: input.name,
+    code: input.code ?? "",
+    unit,
     category: input.category,
     description: input.description,
     pricePerMeterMinor,
@@ -141,6 +159,17 @@ export async function updateCloth(
     throw new InventoryServiceError("A cloth with this name already exists.", "name");
   }
 
+  if (input.code) {
+    const codeDuplicate = await ClothModel.findOne({
+      tenantId: toObjectId(tenantId),
+      code: input.code,
+      _id: { $ne: cloth._id },
+    });
+    if (codeDuplicate) {
+      throw new InventoryServiceError("A cloth with this code already exists.", "code");
+    }
+  }
+
   if (input.supplierId) {
     const supplier = await SupplierModel.findById(input.supplierId);
     if (!supplier || supplier.tenantId.toString() !== tenantId) {
@@ -148,17 +177,24 @@ export async function updateCloth(
     }
   }
 
-  const pricePerMeterMinor = toMinorUnits(input.pricePerMeter, input.currency);
-  if (pricePerMeterMinor === null || pricePerMeterMinor <= 0) {
-    throw new InventoryServiceError("Invalid price per meter.", "pricePerMeter");
+  // UI callers price cloth per yard; legacy programmatic callers (no unit)
+  // keep sending a per-meter price. Storage stays canonical per meter.
+  const unit = input.unit ?? CLOTH_UNIT.METER;
+  const pricePerUnitMinor = toMinorUnits(input.pricePerMeter, input.currency);
+  if (pricePerUnitMinor === null || pricePerUnitMinor <= 0) {
+    throw new InventoryServiceError("Invalid price.", "pricePerMeter");
   }
+  const pricePerMeterMinor =
+    unit === CLOTH_UNIT.YARD ? Math.round(pricePerUnitMinor / YARD_IN_METERS) : pricePerUnitMinor;
 
   const lowStockThresholdMm =
     input.lowStockThresholdMeters.trim() === ""
       ? null
-      : Math.round(Number(input.lowStockThresholdMeters.replace(/,/g, "")) * 1000);
+      : Math.round(Number(input.lowStockThresholdMeters.replace(/,/g, "")) * mmPerUnit(unit));
 
   cloth.name = input.name;
+  cloth.code = input.code ?? "";
+  cloth.unit = unit;
   cloth.category = input.category;
   cloth.description = input.description;
   cloth.pricePerMeterMinor = pricePerMeterMinor;
@@ -241,6 +277,8 @@ interface MovementCore {
   clothId: mongoose.Types.ObjectId;
   direction: "in" | "out";
   quantityMm: number;
+  unit: "yard" | "meter";
+  billNo: string;
   pricePerMeterMinor: number;
   totalValueMinor: number;
   currency: "AFN" | "USD";
@@ -269,7 +307,7 @@ async function assertStockAvailable(
   const available = stock.get(clothId) ?? 0;
   if (requestedMm > available) {
     throw new InventoryServiceError(
-      `Not enough stock: ${available / MM_PER_METER} m available, ${requestedMm / MM_PER_METER} m requested. Use an ADJUSTMENT transaction to correct stock.`,
+      `Not enough stock: ${Math.round((available / MM_PER_YARD) * 1000) / 1000} yd available, ${Math.round((requestedMm / MM_PER_YARD) * 1000) / 1000} yd requested. Use an ADJUSTMENT transaction to correct stock.`,
       "quantityMeters",
     );
   }
@@ -315,20 +353,30 @@ export async function recordInventoryTransaction(
     }
   }
 
-  const quantityMm = Math.round(Number(input.quantityMeters.replace(/,/g, "")) * MM_PER_METER);
+  // New callers send `quantity` + `unit` (yards); legacy callers used
+  // meter-valued `quantityMeters` / `pricePerMeter` without a unit.
+  const unit = input.unit ?? (input.quantity ? CLOTH_UNIT.YARD : CLOTH_UNIT.METER);
+  const quantityInput = input.quantity ?? input.quantityMeters ?? "";
+  const priceInput = input.pricePerUnit ?? input.pricePerMeter ?? "";
+
+  const quantityMm = Math.round(Number(quantityInput.replace(/,/g, "")) * mmPerUnit(unit));
   if (!Number.isSafeInteger(quantityMm) || quantityMm <= 0) {
-    throw new InventoryServiceError("Invalid quantity.", "quantityMeters");
+    throw new InventoryServiceError("Invalid quantity.", "quantity");
   }
 
-  const pricePerMeterMinor = toMinorUnits(input.pricePerMeter, input.currency);
-  if (pricePerMeterMinor === null || pricePerMeterMinor <= 0) {
-    throw new InventoryServiceError("Invalid price per meter.", "pricePerMeter");
+  // The merchant enters the price per yard. Store the canonical per-meter
+  // price so inventory value stays consistent.
+  const pricePerUnitMinor = toMinorUnits(priceInput, input.currency);
+  if (pricePerUnitMinor === null || pricePerUnitMinor <= 0) {
+    throw new InventoryServiceError("Invalid price.", "pricePerUnit");
   }
+  const pricePerMeterMinor =
+    unit === CLOTH_UNIT.YARD ? Math.round(pricePerUnitMinor / 0.9144) : pricePerUnitMinor;
 
   // Total value = meters × price per meter, in exact integer minor units.
   const totalValueMinor = Math.round((quantityMm / MM_PER_METER) * pricePerMeterMinor);
   if (!Number.isSafeInteger(totalValueMinor) || totalValueMinor <= 0) {
-    throw new InventoryServiceError("Invalid total value.", "quantityMeters");
+    throw new InventoryServiceError("Invalid total value.", "quantity");
   }
 
   // Negative-inventory guard applies to SALES only. Adjustments are the
@@ -351,6 +399,8 @@ export async function recordInventoryTransaction(
     clothId: cloth._id,
     direction: input.direction,
     quantityMm,
+    unit,
+    billNo: input.billNo ?? "",
     pricePerMeterMinor,
     totalValueMinor,
     currency: input.currency as "AFN" | "USD",
@@ -382,8 +432,9 @@ export async function recordInventoryTransaction(
       type: SUPPLIER_LEDGER_ENTRY_TYPE.PURCHASE,
       amountMinor: totalValueMinor,
       currency: input.currency,
+      billNo: input.billNo ?? "",
       occurredAt: input.occurredAt,
-      note: input.note || `Purchase: ${quantityMm / MM_PER_METER} m of ${cloth.name}`,
+      note: input.note || `Purchase: ${cloth.name}`,
       inventoryMovementId: movement._id,
       createdBy: toObjectId(userId),
     });
@@ -395,6 +446,7 @@ export async function recordInventoryTransaction(
         type: SUPPLIER_LEDGER_ENTRY_TYPE.PAYMENT,
         amountMinor: amountPaidMinor,
         currency: input.currency,
+        billNo: input.billNo ?? "",
         occurredAt: input.occurredAt,
         note: input.note || `Payment with purchase of ${cloth.name}`,
         inventoryMovementId: movement._id,
@@ -423,8 +475,9 @@ export async function recordInventoryTransaction(
       type: LEDGER_ENTRY_TYPE.GOODS,
       amountMinor: totalValueMinor,
       currency: input.currency,
+      billNo: input.billNo ?? "",
       occurredAt: input.occurredAt,
-      note: input.note || `Sale: ${quantityMm / MM_PER_METER} m of ${cloth.name}`,
+      note: input.note || `Sale: ${cloth.name}`,
       inventoryMovementId: movement._id,
       createdBy: toObjectId(userId),
     });
@@ -436,6 +489,7 @@ export async function recordInventoryTransaction(
         type: LEDGER_ENTRY_TYPE.PAYMENT,
         amountMinor: amountPaidMinor,
         currency: input.currency,
+        billNo: input.billNo ?? "",
         occurredAt: input.occurredAt,
         note: input.note || `Payment with sale of ${cloth.name}`,
         inventoryMovementId: movement._id,
@@ -453,14 +507,14 @@ export async function recordInventoryTransaction(
 }
 
 // ---------------------------------------------------------------------------
-// Aggregations — value and meters per cloth, per currency, never merged
+// Aggregations — value and stock per cloth, per currency, never merged
 // ---------------------------------------------------------------------------
 
 export interface ClothStockView {
   cloth: ClothDocument;
   /** Current stock in integer millimeters (derived from movements). */
   stockMm: number;
-  /** stock (m) × price per meter, in integer minor units. */
+  /** stock (m) × canonical price per meter, in integer minor units. */
   valueMinor: number;
   /** true when stock is at/below the cloth's low-stock threshold. */
   low: boolean;

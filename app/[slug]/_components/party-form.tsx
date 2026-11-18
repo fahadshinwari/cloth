@@ -6,6 +6,7 @@ import { Field, SelectInput, TextInput } from "../../_components/ui";
 import { useI18n } from "../../_components/i18n-provider";
 
 export interface SupplierFormValues {
+  code?: string;
   name?: string;
   companyName?: string;
   phone?: string;
@@ -31,6 +32,14 @@ export function SupplierForm({
 
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
+      <Field
+        label={t("forms.common.code")}
+        error={fieldErrors.code}
+        hint={t("forms.common.codeHint")}
+      >
+        <TextInput name="code" defaultValue={values?.code} required dir="ltr" maxLength={40} />
+      </Field>
+
       <Field label={t("forms.common.name")} error={fieldErrors.name}>
         <TextInput name="name" defaultValue={values?.name} required maxLength={120} />
       </Field>

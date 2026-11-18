@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { USER_ROLE } from "@/lib/constants";
 import { getAuthContext } from "@/lib/auth";
@@ -57,6 +58,33 @@ export default async function TenantSettingsPage({
         </dl>
         <p className="mt-6 text-xs text-zinc-500">{t("settings.readMore")}</p>
       </Card>
+
+      {ctx.permissions.includes("users.manage") || ctx.permissions.includes("roles.manage") ? (
+        <Card>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+            {t("settings.accessControl")}
+          </h2>
+          <p className="mt-2 text-sm text-zinc-500">{t("settings.manageAccessHint")}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {ctx.permissions.includes("users.manage") ? (
+              <Link
+                href={`/${slug}/users`}
+                className="inline-flex h-10 items-center rounded-md border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              >
+                {t("settings.users")}
+              </Link>
+            ) : null}
+            {ctx.permissions.includes("roles.manage") ? (
+              <Link
+                href={`/${slug}/roles`}
+                className="inline-flex h-10 items-center rounded-md border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              >
+                {t("settings.roles")}
+              </Link>
+            ) : null}
+          </div>
+        </Card>
+      ) : null}
     </div>
   );
 }

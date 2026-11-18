@@ -19,7 +19,8 @@
     "language": "Language",
     "logout": "Log out",
     "error": "Something went wrong. Please try again.",
-    "required": "This field is required."
+    "required": "This field is required.",
+    "print": "Print"
   },
   "login": {
     "title": "Sign in",
@@ -47,7 +48,12 @@
     "reports": "Reports",
     "reminders": "Reminders",
     "settings": "Settings",
-    "shops": "Shops"
+    "shops": "Shops",
+    "expenses": "Expenses",
+    "employees": "Employees",
+    "bills": "Bill search",
+    "users": "Users",
+    "roles": "Roles"
   },
   "qa": {
     "addBuyer": "Add buyer",
@@ -61,10 +67,89 @@
   },
   "reports": {
     "title": "Reports",
-    "subtitle": "Filter, view, and download business reports (CSV / PDF).",
+    "subtitle": "Filter, view and download business reports (Excel / CSV).",
     "downloadCsv": "Download CSV",
-    "downloadPdf": "Download PDF",
-    "empty": "No data for the selected filters."
+    "empty": "No data for the selected filters.",
+    "downloadXlsx": "Download Excel (XLSX)",
+    "applyFilters": "Apply filters",
+    "filters": {
+      "from": "From",
+      "to": "To",
+      "currency": "Currency",
+      "transactionType": "Transaction type",
+      "buyer": "Buyer",
+      "supplier": "Supplier",
+      "cloth": "Cloth",
+      "all": "All"
+    },
+    "meta": {
+      "from": "From",
+      "to": "To",
+      "currency": "Currency",
+      "transactionType": "Transaction type"
+    },
+    "titles": {
+      "daily": "Daily transactions",
+      "weekly": "Weekly transactions",
+      "monthly": "Monthly transactions",
+      "buyers": "Buyer report",
+      "suppliers": "Supplier report",
+      "inventory": "Inventory report",
+      "partners": "Partner investment report",
+      "teller": "Teller report"
+    },
+    "sections": {
+      "buyerHistory": "Buyer transaction history",
+      "supplierHistory": "Supplier transaction history"
+    },
+    "columns": {
+      "period": "Period",
+      "currency": "Currency",
+      "goodsGiven": "Goods given",
+      "paymentsReceived": "Payments received",
+      "purchases": "Purchases",
+      "supplierPayments": "Supplier payments",
+      "investments": "Investments",
+      "tellerIn": "Teller in",
+      "tellerOut": "Teller out",
+      "buyer": "Buyer",
+      "shop": "Shop",
+      "phone": "Phone",
+      "clothesReceived": "Clothes received",
+      "payments": "Payments",
+      "outstanding": "Outstanding",
+      "supplier": "Supplier",
+      "company": "Company",
+      "clothingReceived": "Clothing received",
+      "paymentsMade": "Payments made",
+      "outstandingPayable": "Outstanding payable",
+      "cloth": "Cloth",
+      "code": "Code",
+      "category": "Category",
+      "metersIn": "Yards in",
+      "metersOut": "Yards out",
+      "currentMeters": "Current yards",
+      "pricePerMeter": "Price per yard",
+      "inventoryValue": "Inventory value",
+      "partner": "Partner",
+      "invested": "Invested",
+      "cashIn": "Cash in",
+      "cashOut": "Cash out",
+      "net": "Net",
+      "date": "Date",
+      "billNo": "Bill no",
+      "description": "Description",
+      "type": "Type",
+      "debit": "Debit",
+      "credit": "Credit"
+    },
+    "transactionTypes": {
+      "goods": "Goods given",
+      "payment": "Payment",
+      "purchase": "Purchase",
+      "add": "Cash in",
+      "remove": "Cash out"
+    }
   },
   "teller": {
     "title": "Teller / Cash on hand",
@@ -113,7 +198,9 @@
       "adminPasswordHint": "Leave blank when editing to keep the current password.",
       "phone": "Phone",
       "currency": "Currency",
-      "status": "Status"
+      "status": "Status",
+      "optional": "(optional)",
+      "passwordMin": "At least 8 characters."
     },
     "actions": {
       "activate": "Activate",
@@ -121,13 +208,30 @@
       "resetCredentials": "Reset credentials",
       "resetTitle": "Reset admin credentials",
       "newEmail": "New email (optional)",
-      "newPassword": "New password (optional)"
+      "newPassword": "New password (optional)",
+      "updateCredentials": "Update credentials",
+      "credentialsUpdated": "Credentials updated.",
+      "createShop": "Create shop",
+      "saveChanges": "Save changes"
+    },
+    "settings": {
+      "title": "Inventory settings",
+      "allowNegativeInventory": "Allow negative inventory",
+      "allowNegativeInventoryHint": "When off, sales that would push stock below zero are rejected. Record stock corrections as ADJUSTMENT transactions instead.",
+      "allowAdvancePayments": "Allow advance payments",
+      "allowAdvancePaymentsHint": "When off, payments exceeding the outstanding balance are rejected. Turn on only if advance/over payments are recorded deliberately.",
+      "allowed": "Allowed — turn off",
+      "notAllowed": "Not allowed — turn on"
     }
   },
   "settings": {
     "title": "Shop settings",
     "shopInfo": "Shop information",
-    "readMore": "Only the platform administrator can change shop identity, slug or credentials."
+    "readMore": "Only the platform administrator can change shop identity, slug or credentials.",
+    "accessControl": "Users & permissions",
+    "users": "Manage users",
+    "roles": "Manage roles",
+    "manageAccessHint": "Add staff accounts and control what each role can do."
   },
   "partners": {
     "title": "Partners",
@@ -171,6 +275,8 @@
     "goodsGiven": "Goods given",
     "paymentsReceived": "Payments received",
     "count": "Buyers",
+    "searchBy": "Search by code, name or phone",
+    "searchPlaceholder": "Code, name or phone…",
     "ledgerSummary": "Ledger summary",
     "ledger": "Ledger",
     "addEntry": "Add ledger entry",
@@ -182,6 +288,7 @@
     "empty": "No buyers yet. Add your first buyer.",
     "noMixHint": "AFN and USD are tracked separately and never combined.",
     "fields": {
+      "code": "Code",
       "name": "Name",
       "shopName": "Shop name",
       "phone": "Phone",
@@ -209,6 +316,8 @@
     "purchases": "Clothing taken",
     "paid": "Payments made",
     "count": "Suppliers",
+    "searchBy": "Search by code, name or phone",
+    "searchPlaceholder": "Code, name or phone…",
     "ledgerSummary": "Payable summary",
     "addEntry": "Add ledger entry",
     "entryPurchase": "Clothing taken (credit)",
@@ -219,6 +328,7 @@
     "history": "Transaction history",
     "empty": "No suppliers yet. Add your first supplier.",
     "fields": {
+      "code": "Code",
       "name": "Name",
       "companyName": "Company / shop",
       "phone": "Phone",
@@ -232,13 +342,13 @@
   },
   "inventory": {
     "title": "Inventory",
-    "subtitle": "Meter-based clothing stock, calculated from real transactions.",
+    "subtitle": "Yard-based clothing stock, calculated from real transactions.",
     "newCloth": "New cloth",
     "newTransaction": "New transaction",
     "viewAll": "View all",
     "details": "Cloth details",
     "totals": "Inventory totals",
-    "totalMeters": "Total meters",
+    "totalMeters": "Total yards",
     "valueAFN": "Value in AFN",
     "valueUSD": "Value in USD",
     "stockCard": "Stock summary",
@@ -253,10 +363,19 @@
       "cloth": "Cloth",
       "category": "Category",
       "quantity": "Quantity",
-      "pricePerMeter": "Price per meter",
+      "pricePerMeter": "Price per unit",
       "value": "Total value",
       "direction": "Direction",
-      "source": "Source"
+      "source": "Source",
+      "code": "Code"
+    },
+    "transactionHint": "Stock changes only through transactions — purchases raise supplier payables and sales raise buyer balances when on credit.",
+    "directionIn": "IN",
+    "directionOut": "OUT",
+    "sources": {
+      "purchase": "Purchase",
+      "sale": "Sale",
+      "adjustment": "Adjustment"
     }
   },
   "reminders": {
@@ -290,6 +409,11 @@
   "forms": {
     "common": {
       "name": "Name",
+      "code": "Code",
+      "codeHint": "Unique per shop, searchable, e.g. BY-1042",
+      "email": "Email",
+      "reason": "Reason",
+      "reasonHint": "Required — stored in the audit trail.",
       "shopName": "Shop name",
       "companyName": "Company / shop name",
       "phone": "Phone",
@@ -316,16 +440,24 @@
       "clearFilters": "Clear filters",
       "cloth": "Cloth",
       "supplier": "Supplier",
-      "buyer": "Buyer"
+      "buyer": "Buyer",
+      "unit": "Unit",
+      "unitHint": "Yards are the default for buying and selling; meters are also supported.",
+      "billNo": "Bill no",
+      "billNoHint": "Optional — lets you find this entry later by bill number.",
+      "receivedBy": "Received by",
+      "receivedByHint": "Who received this payment (picked from the shop's employees)."
     },
     "cloth": {
       "clothName": "Cloth name",
       "category": "Type / category",
       "categoryHint": "e.g. Linen, Cotton",
-      "pricePerMeter": "Price per meter",
+      "pricePerMeter": "Price per unit",
       "description": "Description",
-      "lowStock": "Low stock warning (meters)",
-      "lowStockHint": "Optional — warn on the dashboard when stock falls to this level."
+      "lowStock": "Low stock warning",
+      "lowStockHint": "Uses the cloth's selected unit. Leave blank to disable.",
+      "code": "Cloth code",
+      "codeHint": "Optional — e.g. CL-1042"
     },
     "inventory": {
       "sourceType": "Transaction",
@@ -335,7 +467,7 @@
       "direction": "Direction",
       "in": "IN — receiving stock",
       "out": "OUT — giving/selling stock",
-      "quantity": "Quantity (meters)",
+      "quantity": "Quantity",
       "supplierHint": "Required for purchases.",
       "buyerHint": "Required for sales.",
       "credit": "On credit?",
@@ -344,7 +476,8 @@
       "creditYes": "Yes — on credit",
       "amountPaid": "Amount paid now",
       "amountPaidHint": "Optional — with credit, the paid part is recorded as an immediate payment.",
-      "recorded": "Transaction recorded."
+      "recorded": "Transaction recorded.",
+      "pricePerUnit": "Price per unit"
     },
     "reminder": {
       "repeats": "Repeats",
@@ -372,6 +505,174 @@
       "inventory": "Inventory",
       "partners": "Partners",
       "teller": "Teller"
+    }
+  },
+  "units": {
+    "yard": "Yard",
+    "meter": "Meter",
+    "m": "m",
+    "yd": "yd",
+    "perMeter": "per yard"
+  },
+  "ledger": {
+    "openingBalance": "Opening balance",
+    "total": "Total",
+    "date": "Date",
+    "description": "Description",
+    "balance": "Balance",
+    "currency": "Currency",
+    "totalsInView": "Totals in view",
+    "deleteReasonPrompt": "Reason for deleting this entry (required):",
+    "reasonRequired": "A reason of at least 3 characters is required.",
+    "editEntry": "Edit ledger entry",
+    "lockedEntry": "Locked — stock transaction",
+    "openingBalanceNote": "Opening balance (before first transaction in view)",
+    "bill": "Bill",
+    "receivedBy": "Received by",
+    "labels": {
+      "buyer": {
+        "debit": "Debit (goods given)",
+        "credit": "Credit (payments received)"
+      },
+      "supplier": {
+        "debit": "Debit (payments made)",
+        "credit": "Credit (clothing taken)"
+      },
+      "teller": {
+        "debit": "Debit (cash in)",
+        "credit": "Credit (cash out)"
+      }
+    },
+    "sources": {
+      "sale": "sale",
+      "purchase": "purchase",
+      "teller": "teller",
+      "manual": "manual"
+    }
+  },
+  "expenses": {
+    "title": "Expenses",
+    "subtitle": "Shop running costs: rent, warehouse, taxes, kitchen, transfers, electricity and more.",
+    "totals": "Total expenses",
+    "totalAFN": "Total AFN",
+    "totalUSD": "Total USD",
+    "add": "Add expense",
+    "record": "Record expense",
+    "history": "Expense history",
+    "empty": "No expenses recorded yet.",
+    "edit": "Edit expense",
+    "fields": {
+      "category": "Category",
+      "name": "Description / custom name",
+      "nameHint": "Optional — e.g. generator diesel",
+      "employee": "Employee",
+      "selectEmployee": "Select an employee",
+      "salaryHint": "Amount and currency are filled from the employee's saved salary."
+    },
+    "categories": {
+      "shopRent": "Shop rent",
+      "warehouseRent": "Warehouse rent",
+      "yearlyTaxes": "Yearly taxes",
+      "kitchenDaily": "Daily kitchen expenses",
+      "dailyOther": "Daily other expenses",
+      "clothTransfer": "Cloth transfer to shop (car fare)",
+      "electricity": "Electricity bills",
+      "other": "Other",
+      "salary": "Salary"
+    }
+  },
+  "employees": {
+    "title": "Employees",
+    "subtitle": "Shop staff whose names can receive payments.",
+    "add": "Add employee",
+    "record": "Add employee",
+    "list": "Employees",
+    "empty": "No employees yet.",
+    "edit": "Edit employee",
+    "fields": {
+      "role": "Role / job title",
+      "salary": "Salary",
+      "salaryCurrency": "Salary currency"
+    }
+  },
+  "users": {
+    "title": "Users",
+    "subtitle": "Shop staff accounts and their roles.",
+    "new": "Add user",
+    "create": "Create user",
+    "list": "Shop users",
+    "empty": "No staff accounts yet.",
+    "edit": "Edit user",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "deleteConfirm": "Delete this user account?",
+    "fields": {
+      "role": "Role",
+      "password": "Password",
+      "passwordHint": "Leave blank to keep the current password.",
+      "active": "Account is active"
+    }
+  },
+  "roles": {
+    "title": "Roles & permissions",
+    "subtitle": "Choose what each role can do. Changes apply immediately.",
+    "create": "Create role",
+    "empty": "No roles yet.",
+    "deleteConfirm": "Delete this role?",
+    "ownerLocked": "The owner role always has every permission.",
+    "fields": {
+      "name": "Role name",
+      "permissions": "Permissions"
+    }
+  },
+  "permissions": {
+    "dashboardView": "View dashboard",
+    "partnersManage": "Manage partners & investments",
+    "buyersManage": "Manage buyers & ledger entries",
+    "suppliersManage": "Manage suppliers & ledger entries",
+    "inventoryManage": "Manage inventory",
+    "tellerManage": "Manage teller",
+    "expensesManage": "Manage expenses",
+    "employeesManage": "Manage employees",
+    "billsView": "Search bills",
+    "reportsView": "View reports",
+    "remindersManage": "Manage reminders",
+    "ledgerEdit": "Edit ledger entries (with reason)",
+    "ledgerDelete": "Delete ledger entries (with reason)",
+    "usersManage": "Manage users",
+    "rolesManage": "Manage roles & permissions"
+  },
+  "print": {
+    "savedReceipt": "Entry saved — you can print the receipt.",
+    "buyerEntry": "Buyer ledger entry",
+    "supplierEntry": "Supplier ledger entry",
+    "party": "Party",
+    "code": "Code",
+    "type": "Type",
+    "amount": "Amount",
+    "date": "Date",
+    "billNo": "Bill no",
+    "receivedBy": "Received by",
+    "note": "Note"
+  },
+  "bills": {
+    "title": "Search bill",
+    "subtitle": "Find a buyer or supplier entry by its bill number.",
+    "billNo": "Bill no",
+    "placeholder": "e.g. 202",
+    "search": "Search",
+    "resultsFor": "Results for bill {billNo}",
+    "noResults": "No entries found for this bill number.",
+    "party": "Party",
+    "kind": "Ledger",
+    "buyer": "Buyer",
+    "supplier": "Supplier",
+    "types": {
+      "goods": "Goods given",
+      "payment": "Payment",
+      "purchase": "Purchase",
+      "sale": "Sale",
+      "adjustment": "Adjustment"
     }
   }
 }

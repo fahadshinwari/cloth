@@ -7,6 +7,8 @@ import { useI18n } from "../../_components/i18n-provider";
 
 export interface ClothFormValues {
   name?: string;
+  code?: string;
+  unit?: string;
   category?: string;
   description?: string;
   pricePerMeter?: string;
@@ -37,6 +39,17 @@ export function ClothForm({
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
       <Field label={t("forms.cloth.clothName")} error={fieldErrors.name}>
         <TextInput name="name" defaultValue={values?.name} required maxLength={120} />
+      </Field>
+
+      <Field label={t("forms.cloth.code")} error={fieldErrors.code} hint={t("forms.cloth.codeHint")}>
+        <TextInput name="code" defaultValue={values?.code} maxLength={60} dir="ltr" placeholder="CL-1042" />
+      </Field>
+
+      <Field label={t("forms.common.unit")} error={fieldErrors.unit} hint={t("forms.common.unitHint")}>
+        <SelectInput name="unit" defaultValue={values?.unit ?? "yard"}>
+          <option value="yard">{t("units.yard")}</option>
+          <option value="meter">{t("units.meter")}</option>
+        </SelectInput>
       </Field>
 
       <Field label={t("forms.cloth.category")} error={fieldErrors.category} hint={t("forms.cloth.categoryHint")}>

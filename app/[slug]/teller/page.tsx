@@ -95,6 +95,8 @@ export default async function TellerPage({
           kind="teller"
           locale={locale}
           emptyMessage={t("teller.empty")}
+          printId="teller-ledger"
+          printTitle={t("teller.history")}
         />
       </Card>
     </div>
